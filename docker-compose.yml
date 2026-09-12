@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # 1. MongoDB for User Data
+  mongodb:
+    image: mongo:latest
+    container_name: green_route_mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: secretpassword
+    volumes:
+      - mongo_data:/data/db
+
+  # 2. PostgreSQL + PostGIS for Map/Routing Data
+  postgis:
+    image: postgis/postgis:14-3.3
+    container_name: green_route_postgis
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: green_route_map_db
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+
+volumes:
+  mongo_data:
+  postgis_data:

@@ -41,6 +41,42 @@ app.get('/api/users/:username', async (req, res) => {
   }
 });
 
+// 3. Save a route and award Eco Points
+app.post('/api/routes/save', async (req, res) => {
+  try {
+    const { username, startCoords, endCoords, distanceKm } = req.body;
+    
+    // Find the user we just created
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    // Award 10 Eco Points per kilometer driven
+    const pointsEarned = Math.max(1, Math.floor(distanceKm * 10));
+
+    // Save the route history
+    const newRoute = new SavedRoute({
+      userId: user._id,
+      startCoords,
+      endCoords,
+      distanceKm,
+      pointsEarned
+    });
+    await newRoute.save();
+
+    // Update the user's total points
+    user.ecoPoints += pointsEarned;
+    await user.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Route saved! You earned ${pointsEarned} Eco Points.`, 
+      totalPoints: user.ecoPoints 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Start the Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

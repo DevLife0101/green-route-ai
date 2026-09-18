@@ -77,6 +77,33 @@ app.post('/api/routes/save', async (req, res) => {
   }
 });
 
+// 4. Fetch a user's route history
+app.get('/api/routes/history/:username', async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    // Find all routes saved by this user, sorted by newest first
+    const history = await SavedRoute.find({ userId: user._id }).sort({ savedAt: -1 });
+    res.status(200).json({ success: true, history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 5. Fetch the global Eco Points Leaderboard
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    // Get the top 10 users with the most ecoPoints
+    const topUsers = await User.find({}, 'username ecoPoints')
+                               .sort({ ecoPoints: -1 })
+                               .limit(10);
+    res.status(200).json({ success: true, leaderboard: topUsers });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Start the Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

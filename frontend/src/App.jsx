@@ -19,9 +19,18 @@ function MapClicker({ setPoints, points, setRoutes }) {
 function App() {
   const [points, setPoints] = useState([]);
   const [routes, setRoutes] = useState(null);
-  const [ecoPoints, setEcoPoints] = useState(9);
+  const [ecoPoints, setEcoPoints] = useState(9); // Initial test value
+  
+  // New State for the Dashboard
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('leaderboard');
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [history, setHistory] = useState([]);
+  
   const position = [31.1048, 77.1734];
+  const currentUser = "EcoWarrior4";
 
+  // Fetch routes from Python
   useEffect(() => {
     if (points.length === 2) {
       fetch('http://localhost:8000/calculate-route', {
@@ -36,15 +45,28 @@ function App() {
       })
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
-          setRoutes(data);
-        } else {
-          alert("Routing error: " + data.error);
-        }
-      })
-      .catch(err => alert("Could not reach Python routing engine: " + err));
+        if (data.success) setRoutes(data);
+      });
     }
   }, [points]);
+
+  // Fetch Dashboard Data from Node.js when opened
+  const fetchDashboardData = () => {
+    // 1. Fetch Leaderboard
+    fetch('http://localhost:5000/api/leaderboard')
+      .then(res => res.json())
+      .then(data => { if (data.success) setLeaderboard(data.leaderboard); });
+
+    // 2. Fetch User History
+    fetch(`http://localhost:5000/api/routes/history/${currentUser}`)
+      .then(res => res.json())
+      .then(data => { if (data.success) setHistory(data.history); });
+  };
+
+  const toggleDashboard = () => {
+    if (!isDashboardOpen) fetchDashboardData();
+    setIsDashboardOpen(!isDashboardOpen);
+  };
 
   const handleSaveRoute = () => {
     if (!routes) return;
@@ -52,7 +74,7 @@ function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: "EcoWarrior4",
+        username: currentUser,
         startCoords: [points[0].lat, points[0].lng],
         endCoords: [points[1].lat, points[1].lng],
         distanceKm: routes.stats.eco_distance_km
@@ -63,20 +85,28 @@ function App() {
       if (data.success) {
         alert(data.message);
         setEcoPoints(data.totalPoints);
+        setRoutes(null);
+        setPoints([]);
       }
     });
   };
 
   return (
-    <div style={{ position: "relative", height: "100vh", width: "100vw" }}>
-      {/* Control Panel */}
+    <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden" }}>
+      
+      {/* Top Right Control Panel */}
       <div style={{
         position: "absolute", top: "15px", right: "15px", zIndex: 1000,
         backgroundColor: "white", padding: "16px", borderRadius: "10px",
         boxShadow: "0 4px 15px rgba(0,0,0,0.15)", width: "260px"
       }}>
-        <h3 style={{ margin: "0 0 5px 0" }}>EcoWarrior4</h3>
-        <p style={{ margin: "0 0 12px 0", color: "#2ECC71", fontWeight: "bold" }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: "0" }}>{currentUser}</h3>
+          <button onClick={toggleDashboard} style={{ background: "#f39c12", color: "white", border: "none", padding: "5px 10px", borderRadius: "4px", cursor: "pointer" }}>
+            🏆 Rank
+          </button>
+        </div>
+        <p style={{ margin: "8px 0 12px 0", color: "#2ECC71", fontWeight: "bold" }}>
           🌱 {ecoPoints} Total Points
         </p>
 
@@ -84,45 +114,76 @@ function App() {
           <div>
             <hr style={{ border: "0.5px solid #eee" }} />
             <p style={{ margin: "6px 0", fontSize: "14px" }}>
-              🔵 <b>Standard:</b> {routes.stats.standard_distance_km} km ({routes.stats.standard_co2_grams}g CO₂)
+              🔵 <b>Standard:</b> {routes.stats.standard_distance_km} km
             </p>
             <p style={{ margin: "6px 0", fontSize: "14px", color: "#27ae60" }}>
-              🟢 <b>Eco Route:</b> {routes.stats.eco_distance_km} km ({routes.stats.eco_co2_grams}g CO₂)
+              🟢 <b>Eco Route:</b> {routes.stats.eco_distance_km} km
             </p>
             <p style={{ margin: "8px 0", fontSize: "13px", fontWeight: "bold", color: "#16a085" }}>
               💨 CO₂ Saved: {routes.stats.co2_saved_grams}g
             </p>
-
-            <button
-              onClick={handleSaveRoute}
-              style={{
-                backgroundColor: "#2ECC71", color: "white", border: "none",
-                padding: "10px", borderRadius: "6px", cursor: "pointer",
-                width: "100%", marginTop: "8px", fontWeight: "bold"
-              }}
-            >
+            <button onClick={handleSaveRoute} style={{ backgroundColor: "#2ECC71", color: "white", border: "none", padding: "10px", borderRadius: "6px", cursor: "pointer", width: "100%", marginTop: "8px", fontWeight: "bold" }}>
               Choose Eco Route & Earn
             </button>
           </div>
         )}
       </div>
 
+      {/* Slide-out Gamification Dashboard */}
+      <div style={{
+        position: "absolute", top: "0", left: isDashboardOpen ? "0" : "-350px", 
+        width: "350px", height: "100vh", backgroundColor: "white", zIndex: 2000,
+        boxShadow: "4px 0 15px rgba(0,0,0,0.2)", transition: "left 0.3s ease",
+        display: "flex", flexDirection: "column"
+      }}>
+        <div style={{ padding: "20px", backgroundColor: "#2ECC71", color: "white", display: "flex", justifyContent: "space-between" }}>
+          <h2 style={{ margin: 0 }}>Green Dashboard</h2>
+          <button onClick={toggleDashboard} style={{ background: "transparent", border: "none", color: "white", fontSize: "20px", cursor: "pointer" }}>✖</button>
+        </div>
+        
+        <div style={{ display: "flex", borderBottom: "1px solid #ddd" }}>
+          <button onClick={() => setActiveTab('leaderboard')} style={{ flex: 1, padding: "15px", border: "none", background: activeTab === 'leaderboard' ? "#f8f9fa" : "white", fontWeight: activeTab === 'leaderboard' ? "bold" : "normal", cursor: "pointer" }}>Leaderboard</button>
+          <button onClick={() => setActiveTab('history')} style={{ flex: 1, padding: "15px", border: "none", background: activeTab === 'history' ? "#f8f9fa" : "white", fontWeight: activeTab === 'history' ? "bold" : "normal", cursor: "pointer" }}>My History</button>
+        </div>
+
+        <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
+          {activeTab === 'leaderboard' ? (
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {leaderboard.map((user, idx) => (
+                <li key={idx} style={{ padding: "10px 0", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between" }}>
+                  <span><b>#{idx + 1}</b> {user.username}</span>
+                  <span style={{ color: "#2ECC71", fontWeight: "bold" }}>{user.ecoPoints} pts</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {history.length === 0 ? <p>No routes saved yet.</p> : history.map((route, idx) => (
+                <li key={idx} style={{ padding: "12px", borderBottom: "1px solid #eee", backgroundColor: "#f8f9fa", marginBottom: "8px", borderRadius: "5px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+                    <b>Route {history.length - idx}</b>
+                    <span style={{ color: "#2ECC71", fontWeight: "bold" }}>+{route.pointsEarned} pts</span>
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>Distance: {route.distanceKm} km</div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>Saved: {new Date(route.savedAt).toLocaleDateString()}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
       <MapContainer center={position} zoom={14} style={{ height: "100%", width: "100%" }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <MapClicker setPoints={setPoints} points={points} setRoutes={setRoutes} />
-
         {points.map((p, i) => (
           <Marker key={i} position={p}>
             <Popup>{i === 0 ? "Start Point" : "Destination"}</Popup>
           </Marker>
         ))}
-
-        {/* Standard Route (Blue) */}
         {routes && (
           <Polyline positions={routes.standard_route} color="#3498DB" weight={4} opacity={0.6} dashArray="8, 8" />
         )}
-
-        {/* Green Route (Green) */}
         {routes && (
           <Polyline positions={routes.eco_route} color="#2ECC71" weight={6} opacity={0.7} />
         )}

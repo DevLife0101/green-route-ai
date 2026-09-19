@@ -29,7 +29,7 @@ export default function Auth({ onLogin }) {
       } else {
         setError(data.message || data.error);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to connect to the server.");
     }
   };

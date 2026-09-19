@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import Auth from './components/Auth';
 
 function MapClicker({ setPoints, points, setRoutes }) {
   useMapEvents({
@@ -17,20 +18,21 @@ function MapClicker({ setPoints, points, setRoutes }) {
 }
 
 function App() {
+  // User Authentication State
+  const [currentUser, setCurrentUser] = useState(null);
+
   const [points, setPoints] = useState([]);
   const [routes, setRoutes] = useState(null);
-  const [ecoPoints, setEcoPoints] = useState(9); // Initial test value
+  const [ecoPoints, setEcoPoints] = useState(0); 
   
-  // New State for the Dashboard
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [leaderboard, setLeaderboard] = useState([]);
   const [history, setHistory] = useState([]);
   
   const position = [31.1048, 77.1734];
-  const currentUser = "EcoWarrior4";
 
-  // Fetch routes from Python
+  // RULE OF HOOKS: All hooks (like useEffect) must be declared BEFORE any early returns!
   useEffect(() => {
     if (points.length === 2) {
       fetch('http://localhost:8000/calculate-route', {
@@ -50,15 +52,20 @@ function App() {
     }
   }, [points]);
 
-  // Fetch Dashboard Data from Node.js when opened
+  // NOW we can safely do our early return for the Auth screen
+  if (!currentUser) {
+    return <Auth onLogin={(user) => {
+      setCurrentUser(user);
+      setEcoPoints(user.ecoPoints); 
+    }} />;
+  }
+
   const fetchDashboardData = () => {
-    // 1. Fetch Leaderboard
     fetch('http://localhost:5000/api/leaderboard')
       .then(res => res.json())
       .then(data => { if (data.success) setLeaderboard(data.leaderboard); });
 
-    // 2. Fetch User History
-    fetch(`http://localhost:5000/api/routes/history/${currentUser}`)
+    fetch(`http://localhost:5000/api/routes/history/${currentUser.username}`)
       .then(res => res.json())
       .then(data => { if (data.success) setHistory(data.history); });
   };
@@ -74,7 +81,7 @@ function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: currentUser,
+        username: currentUser.username, 
         startCoords: [points[0].lat, points[0].lng],
         endCoords: [points[1].lat, points[1].lng],
         distanceKm: routes.stats.eco_distance_km
@@ -91,6 +98,13 @@ function App() {
     });
   };
 
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setPoints([]);
+    setRoutes(null);
+    setIsDashboardOpen(false);
+  };
+
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden" }}>
       
@@ -98,15 +112,22 @@ function App() {
       <div style={{
         position: "absolute", top: "15px", right: "15px", zIndex: 1000,
         backgroundColor: "white", padding: "16px", borderRadius: "10px",
-        boxShadow: "0 4px 15px rgba(0,0,0,0.15)", width: "260px"
+        boxShadow: "0 4px 15px rgba(0,0,0,0.15)", width: "280px"
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: "0" }}>{currentUser}</h3>
-          <button onClick={toggleDashboard} style={{ background: "#f39c12", color: "white", border: "none", padding: "5px 10px", borderRadius: "4px", cursor: "pointer" }}>
-            🏆 Rank
-          </button>
+          <h3 style={{ margin: "0", fontSize: "1.2rem", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {currentUser.username}
+          </h3>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={toggleDashboard} style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
+              🏆 Rank
+            </button>
+            <button onClick={handleLogout} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
+              Logout
+            </button>
+          </div>
         </div>
-        <p style={{ margin: "8px 0 12px 0", color: "#2ECC71", fontWeight: "bold" }}>
+        <p style={{ margin: "12px 0", color: "#2ECC71", fontWeight: "bold" }}>
           🌱 {ecoPoints} Total Points
         </p>
 
@@ -136,7 +157,7 @@ function App() {
         boxShadow: "4px 0 15px rgba(0,0,0,0.2)", transition: "left 0.3s ease",
         display: "flex", flexDirection: "column"
       }}>
-        <div style={{ padding: "20px", backgroundColor: "#2ECC71", color: "white", display: "flex", justifyContent: "space-between" }}>
+        <div style={{ padding: "20px", backgroundColor: "#2ECC71", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2 style={{ margin: 0 }}>Green Dashboard</h2>
           <button onClick={toggleDashboard} style={{ background: "transparent", border: "none", color: "white", fontSize: "20px", cursor: "pointer" }}>✖</button>
         </div>
@@ -150,15 +171,15 @@ function App() {
           {activeTab === 'leaderboard' ? (
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {leaderboard.map((user, idx) => (
-                <li key={idx} style={{ padding: "10px 0", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between" }}>
-                  <span><b>#{idx + 1}</b> {user.username}</span>
+                <li key={idx} style={{ padding: "12px 10px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", backgroundColor: user.username === currentUser.username ? "#e8f8f5" : "transparent" }}>
+                  <span><b>#{idx + 1}</b> {user.username} {user.username === currentUser.username && "(You)"}</span>
                   <span style={{ color: "#2ECC71", fontWeight: "bold" }}>{user.ecoPoints} pts</span>
                 </li>
               ))}
             </ul>
           ) : (
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              {history.length === 0 ? <p>No routes saved yet.</p> : history.map((route, idx) => (
+              {history.length === 0 ? <p style={{ color: "#666" }}>No routes saved yet.</p> : history.map((route, idx) => (
                 <li key={idx} style={{ padding: "12px", borderBottom: "1px solid #eee", backgroundColor: "#f8f9fa", marginBottom: "8px", borderRadius: "5px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
                     <b>Route {history.length - idx}</b>

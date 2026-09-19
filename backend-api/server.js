@@ -30,6 +30,25 @@ app.post('/api/users/register', async (req, res) => {
   }
 });
 
+// 2. Login an existing user
+app.post('/api/users/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    // Find the user by username
+    const user = await User.findOne({ username });
+    
+    // Check if user exists and password matches (Prototype plaintext check)
+    if (!user || user.password !== password) {
+      return res.status(401).json({ success: false, message: "Invalid username or password" });
+    }
+    
+    res.status(200).json({ success: true, message: "Login successful!", user });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 2. Fetch a user's Eco Points profile
 app.get('/api/users/:username', async (req, res) => {
   try {

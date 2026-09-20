@@ -42,6 +42,13 @@ export default function Auth({ onLogin }) {
           Green Route AI
         </h2>
         
+        {/* Back to Home Button Added Here */}
+        <div style={{ textAlign: "center", marginBottom: "15px" }}>
+          <button onClick={() => window.location.reload()} style={{ background: "transparent", border: "none", color: "#666", cursor: "pointer", fontSize: "14px" }}>
+            ← Back to Home
+          </button>
+        </div>
+        
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input type="text" name="username" placeholder="Username" required value={formData.username} onChange={handleChange} style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
           

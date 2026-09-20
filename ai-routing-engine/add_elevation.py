@@ -4,7 +4,7 @@ import json
 
 def process_mountain_data():
     print("🌍 Loading local map...")
-    G = ox.load_graphml("shimla_drive.graphml")
+    G = ox.load_graphml("shimla_large_drive.graphml")
     
     # Extract the GPS coordinates of all 126 intersections
     nodes = list(G.nodes(data=True))
@@ -30,7 +30,7 @@ def process_mountain_data():
             # OSMnx math: Automatically calculate the % slope of every road!
             G = ox.elevation.add_edge_grades(G)
             
-            filename = "shimla_elevation.graphml"
+            filename = "shimla_large_elevation.graphml"
             ox.save_graphml(G, filename)
             
             print(f"✅ Success! Mountain data integrated.")

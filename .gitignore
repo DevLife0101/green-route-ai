@@ -1,0 +1,19 @@
+# Node dependencies
+node_modules/
+.env
+
+# Python dependencies
+venv/
+__pycache__/
+*.pyc
+
+# Next.js build files
+.next/
+out/
+
+# Spatial Data
+*.graphml
+pg_spatial_data/
+
+# OS files
+.DS_Store

@@ -11,9 +11,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ MongoDB Connected (User Data)'))
+// Connect to MongoDB Atlas
+// Notice how the password is set to 'admin' and the database is set to 'greenroute'
+const MONGODB_URI = 'mongodb+srv://green_user:green_pass123@bitlinks-cluster.rp06bb2.mongodb.net/greenroute?appName=bitlinks-cluster';
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('✅ MongoDB Connected (User Data - Atlas Cloud)'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // --- NEW API ENDPOINTS ---

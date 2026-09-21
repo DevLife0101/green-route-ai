@@ -12,7 +12,6 @@ app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB Atlas
-// Notice how the password is set to 'admin' and the database is set to 'greenroute'
 const MONGODB_URI = 'mongodb+srv://green_user:green_pass123@bitlinks-cluster.rp06bb2.mongodb.net/greenroute?appName=bitlinks-cluster';
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected (User Data - Atlas Cloud)'))
@@ -51,7 +50,7 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
-// 2. Fetch a user's Eco Points profile
+// 3. Fetch a user's Eco Points profile
 app.get('/api/users/:username', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username });
@@ -62,7 +61,7 @@ app.get('/api/users/:username', async (req, res) => {
   }
 });
 
-// 3. Save a route and award Eco Points
+// 4. Save a route and award Eco Points
 app.post('/api/routes/save', async (req, res) => {
   try {
     const { username, startCoords, endCoords, distanceKm } = req.body;
@@ -98,7 +97,7 @@ app.post('/api/routes/save', async (req, res) => {
   }
 });
 
-// 4. Fetch a user's route history
+// 5. Fetch a user's route history
 app.get('/api/routes/history/:username', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username });
@@ -112,7 +111,7 @@ app.get('/api/routes/history/:username', async (req, res) => {
   }
 });
 
-// 5. Fetch the global Eco Points Leaderboard
+// 6. Fetch the global Eco Points Leaderboard
 app.get('/api/leaderboard', async (req, res) => {
   try {
     // Get the top 10 users with the most ecoPoints
@@ -125,8 +124,27 @@ app.get('/api/leaderboard', async (req, res) => {
   }
 });
 
+// 7. Submit Feedback
+app.post('/api/feedback', async (req, res) => {
+  try {
+    const { username, rating, text } = req.body;
+    
+    // Saves directly to a 'feedbacks' collection
+    await mongoose.connection.collection('feedbacks').insertOne({
+      username: username || 'Anonymous',
+      rating,
+      text,
+      submittedAt: new Date()
+    });
+
+    res.json({ success: true, message: 'Feedback saved successfully!' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to save feedback' });
+  }
+});
+
 // Start the Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

@@ -17,7 +17,8 @@ export default function Auth({ onLogin }) {
     const endpoint = isLogin ? '/api/users/login' : '/api/users/register';
     
     try {
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      // ✅ Updated to point to your live Render backend!
+      const res = await fetch(`https://green-route-node.onrender.com${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

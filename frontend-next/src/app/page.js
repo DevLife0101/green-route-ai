@@ -20,10 +20,10 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [history, setHistory] = useState([]);
 
-  // Fetch routes from Python engine
+  // Fetch routes from Python engine (Render Cloud URL)
   useEffect(() => {
     if (points.length === 2) {
-      fetch('http://localhost:8000/calculate-route', {
+      fetch('https://green-route-python.onrender.com/calculate-route', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -41,12 +41,10 @@ export default function Home() {
   }, [points]);
 
   // --- NEW FLOW LOGIC ---
-  // 1. If not logged in and hasn't clicked "Get Started", show Landing
   if (!currentUser && !showAuth) {
     return <Landing onGetStarted={() => setShowAuth(true)} />;
   }
 
-  // 2. If they clicked "Get Started" but aren't logged in, show Auth
   if (!currentUser && showAuth) {
     return <Auth onLogin={(user) => {
       setCurrentUser(user);
@@ -54,13 +52,14 @@ export default function Home() {
     }} />;
   }
 
-  
   const fetchDashboardData = () => {
-    fetch('http://localhost:5000/api/leaderboard')
+    // Node API (Render Cloud URL)
+    fetch('https://green-route-node.onrender.com/api/leaderboard')
       .then(res => res.json())
       .then(data => { if (data.success) setLeaderboard(data.leaderboard); });
 
-    fetch(`http://localhost:5000/api/routes/history/${currentUser.username}`)
+    // Node API (Render Cloud URL)
+    fetch(`https://green-route-node.onrender.com/api/routes/history/${currentUser.username}`)
       .then(res => res.json())
       .then(data => { if (data.success) setHistory(data.history); });
   };
@@ -72,7 +71,8 @@ export default function Home() {
 
   const handleSaveRoute = () => {
     if (!routes) return;
-    fetch('http://localhost:5000/api/routes/save', {
+    // Node API (Render Cloud URL)
+    fetch('https://green-route-node.onrender.com/api/routes/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

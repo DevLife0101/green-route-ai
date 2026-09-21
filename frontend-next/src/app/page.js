@@ -118,9 +118,6 @@ export default function Home() {
             {currentUser.username}
           </h3>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={() => setShowFeedback(true)} style={{ background: "#3498DB", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
-              💡 Help
-            </button>
             <button onClick={toggleDashboard} style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
               🏆 Rank
             </button>
@@ -198,6 +195,18 @@ export default function Home() {
 
       <Map points={points} setPoints={setPoints} routes={routes} setRoutes={setRoutes} />
       
+      {/* Floating Contact Us Button */}
+      <button 
+        onClick={() => setShowFeedback(true)} 
+        style={{
+          position: "absolute", bottom: "30px", right: "30px", zIndex: 1000,
+          backgroundColor: "#3498DB", color: "white", padding: "12px 24px",
+          border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "15px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.3)", cursor: "pointer"
+        }}>
+        ✉️ Contact Us
+      </button>
+
       {/* Feedback Modal Overlay */}
       {showFeedback && (
         <Feedback currentUser={currentUser} onClose={() => setShowFeedback(false)} />

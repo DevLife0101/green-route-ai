@@ -124,14 +124,17 @@ app.get('/api/leaderboard', async (req, res) => {
   }
 });
 
-// 7. Submit Feedback
+// 7. Submit Feedback / Contact Us
 app.post('/api/feedback', async (req, res) => {
   try {
-    const { username, rating, text } = req.body;
+    const { username, name, email, phone, rating, text } = req.body;
     
     // Saves directly to a 'feedbacks' collection
     await mongoose.connection.collection('feedbacks').insertOne({
       username: username || 'Anonymous',
+      name: name || '',
+      email: email || '',
+      phone: phone || '',
       rating,
       text,
       submittedAt: new Date()

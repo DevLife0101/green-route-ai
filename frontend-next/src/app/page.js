@@ -25,6 +25,7 @@ export default function Home() {
 
   useEffect(() => {
     if (points.length === 2) {
+      // The Python engine stays on Render!
       fetch('https://green-route-python.onrender.com/calculate-route', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,11 +55,13 @@ export default function Home() {
   }
 
   const fetchDashboardData = () => {
-    fetch('https://green-route-node.onrender.com/api/leaderboard')
+    // ✅ Updated to Vercel Serverless API
+    fetch('/api/leaderboard')
       .then(res => res.json())
       .then(data => { if (data.success) setLeaderboard(data.leaderboard); });
 
-    fetch(`https://green-route-node.onrender.com/api/routes/history/${currentUser.username}`)
+    // ✅ Updated to Vercel Serverless API
+    fetch(`/api/routes/history/${currentUser.username}`)
       .then(res => res.json())
       .then(data => { if (data.success) setHistory(data.history); });
   };
@@ -70,7 +73,8 @@ export default function Home() {
 
   const handleSaveRoute = () => {
     if (!routes) return;
-    fetch('https://green-route-node.onrender.com/api/routes/save', {
+    // ✅ Updated to Vercel Serverless API
+    fetch('/api/routes/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -100,7 +104,6 @@ export default function Home() {
   };
 
   return (
-    // FIX 1: Changed height from "100vh" to "100dvh" to respect mobile browser menus
     <div style={{ position: "relative", height: "100dvh", width: "100vw", overflow: "hidden" }}>
 
       <div style={{
@@ -150,7 +153,7 @@ export default function Home() {
         position: "absolute", top: "0", 
         left: isDashboardOpen ? "0" : "-100%", 
         width: "100%", maxWidth: "350px", 
-        height: "100dvh", backgroundColor: "white", zIndex: 3000, // Elevated z-index
+        height: "100dvh", backgroundColor: "white", zIndex: 3000, 
         boxShadow: "4px 0 15px rgba(0,0,0,0.2)", transition: "left 0.3s ease",
         display: "flex", flexDirection: "column", color: "#333"
       }}>
@@ -193,7 +196,6 @@ export default function Home() {
 
       <Map points={points} setPoints={setPoints} routes={routes} setRoutes={setRoutes} />
 
-      {/* FIX 2: Lifted buttons to bottom: "40px" and raised zIndex to 2000 */}
       <button 
         onClick={() => setShowTutorial(true)} 
         style={{

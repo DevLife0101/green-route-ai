@@ -209,7 +209,7 @@ export default function Home() {
           border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "15px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.3)", cursor: "pointer"
         }}>
-        📖 How to Play
+        📖 How to Use
       </button>
 
       <button 

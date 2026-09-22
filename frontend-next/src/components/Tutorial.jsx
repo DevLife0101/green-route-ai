@@ -24,7 +24,7 @@ export default function Tutorial({ onClose }) {
           background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#666'
         }}>✖</button>
 
-        <h2 style={{ margin: '0 0 5px 0', color: '#2ECC71' }}>How to play Green Route 🌍</h2>
+        <h2 style={{ margin: '0 0 5px 0', color: '#2ECC71' }}>How to use Green Route 🌍</h2>
         <p style={{ margin: '0 0 20px 0', color: '#666', fontSize: '14px' }}>Follow these steps to reduce emissions and earn points.</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>

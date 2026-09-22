@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Auth from '../components/Auth';
 import Landing from '../components/Landing'; // Import the Landing Page
 import Feedback from '../components/Feedback'; // Import Feedback Component
+import Tutorial from '../components/Tutorial'; // Import Tutorial Component
 
 const Map = dynamic(() => import('../components/Map'), { ssr: false });
 
@@ -21,8 +22,9 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [history, setHistory] = useState([]);
   
-  // Feedback State
+  // Modal State
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // Fetch routes from Python engine (Render Cloud URL)
   useEffect(() => {
@@ -121,6 +123,9 @@ export default function Home() {
             {currentUser.username}
           </h3>
           <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={() => setShowTutorial(true)} style={{ background: "#9b59b6", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
+              📖 Guide
+            </button>
             <button onClick={toggleDashboard} style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
               🏆 Rank
             </button>
@@ -210,9 +215,12 @@ export default function Home() {
         ✉️ Contact Us
       </button>
 
-      {/* Feedback Modal Overlay */}
+      {/* Modals */}
       {showFeedback && (
         <Feedback currentUser={currentUser} onClose={() => setShowFeedback(false)} />
+      )}
+      {showTutorial && (
+        <Tutorial onClose={() => setShowTutorial(false)} />
       )}
     </div>
   );

@@ -9,11 +9,9 @@ import Tutorial from '../components/Tutorial';
 const Map = dynamic(() => import('../components/Map'), { ssr: false });
 
 export default function Home() {
-  // Flow State
   const [showAuth, setShowAuth] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Map & Dashboard State
   const [points, setPoints] = useState([]);
   const [routes, setRoutes] = useState(null);
   const [ecoPoints, setEcoPoints] = useState(0); 
@@ -22,11 +20,9 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [history, setHistory] = useState([]);
 
-  // Modal State
   const [showFeedback, setShowFeedback] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
 
-  // Fetch routes from Python engine
   useEffect(() => {
     if (points.length === 2) {
       fetch('https://green-route-python.onrender.com/calculate-route', {
@@ -104,14 +100,14 @@ export default function Home() {
   };
 
   return (
-    <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden" }}>
+    // FIX 1: Changed height from "100vh" to "100dvh" to respect mobile browser menus
+    <div style={{ position: "relative", height: "100dvh", width: "100vw", overflow: "hidden" }}>
 
-      {/* RESPONSIVE: Top Right Control Panel */}
       <div style={{
-        position: "absolute", top: "15px", right: "15px", zIndex: 1000,
+        position: "absolute", top: "15px", right: "15px", zIndex: 2000,
         backgroundColor: "white", padding: "16px", borderRadius: "10px",
         boxShadow: "0 4px 15px rgba(0,0,0,0.15)", 
-        width: "100%", maxWidth: "280px", // Adapts to small screens
+        width: "100%", maxWidth: "280px", 
         color: "#333", boxSizing: "border-box"
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -150,12 +146,11 @@ export default function Home() {
         )}
       </div>
 
-      {/* RESPONSIVE: Slide-out Gamification Dashboard */}
       <div style={{
         position: "absolute", top: "0", 
-        left: isDashboardOpen ? "0" : "-100%", // Slides completely off-screen securely
-        width: "100%", maxWidth: "350px", // Full width on mobile, 350px on desktop
-        height: "100vh", backgroundColor: "white", zIndex: 2000,
+        left: isDashboardOpen ? "0" : "-100%", 
+        width: "100%", maxWidth: "350px", 
+        height: "100dvh", backgroundColor: "white", zIndex: 3000, // Elevated z-index
         boxShadow: "4px 0 15px rgba(0,0,0,0.2)", transition: "left 0.3s ease",
         display: "flex", flexDirection: "column", color: "#333"
       }}>
@@ -198,11 +193,11 @@ export default function Home() {
 
       <Map points={points} setPoints={setPoints} routes={routes} setRoutes={setRoutes} />
 
-      {/* RESPONSIVE: Floating Buttons (Bottom Left and Bottom Right) */}
+      {/* FIX 2: Lifted buttons to bottom: "40px" and raised zIndex to 2000 */}
       <button 
         onClick={() => setShowTutorial(true)} 
         style={{
-          position: "absolute", bottom: "20px", left: "15px", zIndex: 1000,
+          position: "absolute", bottom: "40px", left: "15px", zIndex: 2000,
           backgroundColor: "#9b59b6", color: "white", padding: "10px 18px",
           border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "14px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.3)", cursor: "pointer"
@@ -213,7 +208,7 @@ export default function Home() {
       <button 
         onClick={() => setShowFeedback(true)} 
         style={{
-          position: "absolute", bottom: "20px", right: "15px", zIndex: 1000,
+          position: "absolute", bottom: "40px", right: "15px", zIndex: 2000,
           backgroundColor: "#3498DB", color: "white", padding: "10px 18px",
           border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "14px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.3)", cursor: "pointer"
@@ -221,7 +216,6 @@ export default function Home() {
         ✉️ Contact
       </button>
 
-      {/* Modals */}
       {showFeedback && (
         <Feedback currentUser={currentUser} onClose={() => setShowFeedback(false)} />
       )}

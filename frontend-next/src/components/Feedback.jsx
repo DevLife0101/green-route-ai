@@ -9,25 +9,33 @@ export default function Feedback({ currentUser, onClose }) {
   const [text, setText] = useState('');
   const [rating, setRating] = useState(5);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false); // Added loading state
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // Disable the button while sending
     
-    // Send to your live Render backend
-    const res = await fetch('https://green-route-node.onrender.com/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: currentUser?.username,
-        name,
-        email,
-        phone,
-        rating,
-        text
-      })
-    });
+    try {
+      // ✅ Updated to point to your new Vercel serverless API!
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser?.username,
+          name,
+          email,
+          phone,
+          rating,
+          text
+        })
+      });
 
-    if (res.ok) setSubmitted(true);
+      if (res.ok) setSubmitted(true);
+    } catch (error) {
+      console.error("Failed to submit feedback", error);
+    } finally {
+      setLoading(false); // Re-enable the button if it fails
+    }
   };
 
   const inputStyle = {
@@ -103,11 +111,11 @@ export default function Feedback({ currentUser, onClose }) {
               />
             </div>
 
-            <button type="submit" style={{
-              backgroundColor: '#3498DB', color: 'white', padding: '12px', border: 'none',
-              borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px', marginTop: '5px'
+            <button type="submit" disabled={loading} style={{
+              backgroundColor: loading ? '#95a5a6' : '#3498DB', color: 'white', padding: '12px', border: 'none',
+              borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '16px', marginTop: '5px'
             }}>
-              Send Message
+              {loading ? 'Sending...' : 'Send Message'}
             </button>
           </form>
         )}

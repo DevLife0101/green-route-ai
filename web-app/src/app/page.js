@@ -27,32 +27,34 @@ export default function Home() {
   const [isCalculating, setIsCalculating] = useState(false); 
 
   useEffect(() => {
-    if (points.length === 2) {
-      setIsCalculating(true); // Show loading badge
-      
-      // The Python engine stays on Render!
-      fetch('https://green-route-python.onrender.com/calculate-route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          start_lat: points[0].lat,
-          start_lon: points[0].lng,
-          end_lat: points[1].lat,
-          end_lon: points[1].lng
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) setRoutes(data);
-      })
-      .catch(err => {
-        console.error("Routing error:", err);
-        alert("Failed to calculate route. Please try again.");
-      })
-      .finally(() => {
-        setIsCalculating(false); // Hide loading badge when finished
-      });
-    }
+    const calculateRoute = async () => {
+      if (points.length === 2) {
+        setIsCalculating(true); // Safely called inside the async function
+        
+        try {
+          const res = await fetch('https://green-route-python.onrender.com/calculate-route', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              start_lat: points[0].lat,
+              start_lon: points[0].lng,
+              end_lat: points[1].lat,
+              end_lon: points[1].lng
+            })
+          });
+          
+          const data = await res.json();
+          if (data.success) setRoutes(data);
+        } catch (err) {
+          console.error("Routing error:", err);
+          alert("Failed to calculate route. Please try again.");
+        } finally {
+          setIsCalculating(false); // Hide loading badge when finished
+        }
+      }
+    };
+
+    calculateRoute();
   }, [points]);
 
   if (!currentUser && !showAuth) {
@@ -203,7 +205,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* NEW: Loading Indicator for Route Calculation */}
+      {/* Loading Indicator for Route Calculation */}
       {isCalculating && (
         <div style={{
           position: "absolute", top: "80px", left: "50%", transform: "translateX(-50%)",

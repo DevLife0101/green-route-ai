@@ -93,6 +93,9 @@ export default function Home() {
         setEcoPoints(data.totalPoints);
         setRoutes(null);
         setPoints([]);
+        
+        // INSTANT SYNC: Fetch updated leaderboard and history from the server!
+        fetchDashboardData(); 
       }
     });
   };

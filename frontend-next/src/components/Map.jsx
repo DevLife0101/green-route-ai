@@ -1,6 +1,15 @@
 "use client";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import L from 'leaflet'; // Import Leaflet directly to fix the icons
+
+// Fix for missing Leaflet marker images in Next.js/Vercel
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 function MapClicker({ setPoints, points, setRoutes }) {
   useMapEvents({
@@ -16,7 +25,7 @@ function MapClicker({ setPoints, points, setRoutes }) {
   return null;
 }
 
-// NEW: Live GPS Locator Button
+// Live GPS Locator Button
 function GPSLocator() {
   const map = useMap();
   
@@ -32,10 +41,18 @@ function GPSLocator() {
     <button 
       onClick={handleLocate}
       style={{
-        position: "absolute", bottom: "30px", right: "20px", zIndex: 1000,
-        backgroundColor: "#3498DB", color: "white", border: "none",
-        padding: "12px 20px", borderRadius: "8px", cursor: "pointer",
-        fontWeight: "bold", boxShadow: "0 4px 15px rgba(0,0,0,0.2)"
+        position: "absolute", 
+        bottom: "90px", // Moved up to 90px so it doesn't overlap Contact Us
+        right: "30px", 
+        zIndex: 1000,
+        backgroundColor: "#3498DB", 
+        color: "white", 
+        border: "none",
+        padding: "12px 20px", 
+        borderRadius: "30px", 
+        cursor: "pointer",
+        fontWeight: "bold", 
+        boxShadow: "0 4px 15px rgba(0,0,0,0.2)"
       }}
     >
       📍 Find Me
@@ -51,7 +68,7 @@ export default function Map({ points, setPoints, routes, setRoutes }) {
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <MapClicker setPoints={setPoints} points={points} setRoutes={setRoutes} />
       
-      <GPSLocator /> {/* Injecting the new button */}
+      <GPSLocator />
 
       {points.map((p, i) => (
         <Marker key={i} position={p}>

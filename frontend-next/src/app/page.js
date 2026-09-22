@@ -119,13 +119,10 @@ export default function Home() {
         boxShadow: "0 4px 15px rgba(0,0,0,0.15)", width: "280px", color: "#333"
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: "0", fontSize: "1.2rem", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <h3 style={{ margin: "0", fontSize: "1.2rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {currentUser.username}
           </h3>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={() => setShowTutorial(true)} style={{ background: "#9b59b6", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
-              📖 Guide
-            </button>
             <button onClick={toggleDashboard} style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
               🏆 Rank
             </button>
@@ -203,7 +200,18 @@ export default function Home() {
 
       <Map points={points} setPoints={setPoints} routes={routes} setRoutes={setRoutes} />
       
-      {/* Floating Contact Us Button */}
+      {/* Floating Buttons: Bottom Left and Bottom Right */}
+      <button 
+        onClick={() => setShowTutorial(true)} 
+        style={{
+          position: "absolute", bottom: "30px", left: "30px", zIndex: 1000,
+          backgroundColor: "#9b59b6", color: "white", padding: "12px 24px",
+          border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "15px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.3)", cursor: "pointer"
+        }}>
+        📖 How to Play
+      </button>
+
       <button 
         onClick={() => setShowFeedback(true)} 
         style={{

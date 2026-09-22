@@ -2,9 +2,9 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Auth from '../components/Auth';
-import Landing from '../components/Landing'; // Import the Landing Page
-import Feedback from '../components/Feedback'; // Import Feedback Component
-import Tutorial from '../components/Tutorial'; // Import Tutorial Component
+import Landing from '../components/Landing';
+import Feedback from '../components/Feedback';
+import Tutorial from '../components/Tutorial';
 
 const Map = dynamic(() => import('../components/Map'), { ssr: false });
 
@@ -12,7 +12,7 @@ export default function Home() {
   // Flow State
   const [showAuth, setShowAuth] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  
+
   // Map & Dashboard State
   const [points, setPoints] = useState([]);
   const [routes, setRoutes] = useState(null);
@@ -21,12 +21,12 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [leaderboard, setLeaderboard] = useState([]);
   const [history, setHistory] = useState([]);
-  
+
   // Modal State
   const [showFeedback, setShowFeedback] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
 
-  // Fetch routes from Python engine (Render Cloud URL)
+  // Fetch routes from Python engine
   useEffect(() => {
     if (points.length === 2) {
       fetch('https://green-route-python.onrender.com/calculate-route', {
@@ -46,7 +46,6 @@ export default function Home() {
     }
   }, [points]);
 
-  // --- NEW FLOW LOGIC ---
   if (!currentUser && !showAuth) {
     return <Landing onGetStarted={() => setShowAuth(true)} />;
   }
@@ -59,12 +58,10 @@ export default function Home() {
   }
 
   const fetchDashboardData = () => {
-    // Node API (Render Cloud URL)
     fetch('https://green-route-node.onrender.com/api/leaderboard')
       .then(res => res.json())
       .then(data => { if (data.success) setLeaderboard(data.leaderboard); });
 
-    // Node API (Render Cloud URL)
     fetch(`https://green-route-node.onrender.com/api/routes/history/${currentUser.username}`)
       .then(res => res.json())
       .then(data => { if (data.success) setHistory(data.history); });
@@ -77,7 +74,6 @@ export default function Home() {
 
   const handleSaveRoute = () => {
     if (!routes) return;
-    // Node API (Render Cloud URL)
     fetch('https://green-route-node.onrender.com/api/routes/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -95,8 +91,6 @@ export default function Home() {
         setEcoPoints(data.totalPoints);
         setRoutes(null);
         setPoints([]);
-        
-        // INSTANT SYNC: Fetch updated leaderboard and history from the server!
         fetchDashboardData(); 
       }
     });
@@ -111,18 +105,20 @@ export default function Home() {
 
   return (
     <div style={{ position: "relative", height: "100vh", width: "100vw", overflow: "hidden" }}>
-      
-      {/* Top Right Control Panel */}
+
+      {/* RESPONSIVE: Top Right Control Panel */}
       <div style={{
         position: "absolute", top: "15px", right: "15px", zIndex: 1000,
         backgroundColor: "white", padding: "16px", borderRadius: "10px",
-        boxShadow: "0 4px 15px rgba(0,0,0,0.15)", width: "280px", color: "#333"
+        boxShadow: "0 4px 15px rgba(0,0,0,0.15)", 
+        width: "100%", maxWidth: "280px", // Adapts to small screens
+        color: "#333", boxSizing: "border-box"
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: "0", fontSize: "1.2rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <h3 style={{ margin: "0", fontSize: "1.1rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "5px" }}>
             {currentUser.username}
           </h3>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
             <button onClick={toggleDashboard} style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
               🏆 Rank
             </button>
@@ -147,28 +143,30 @@ export default function Home() {
             <p style={{ margin: "8px 0", fontSize: "13px", fontWeight: "bold", color: "#16a085" }}>
               💨 CO₂ Saved: {routes.stats.co2_saved_grams}g
             </p>
-            <button onClick={handleSaveRoute} style={{ backgroundColor: "#2ECC71", color: "white", border: "none", padding: "10px", borderRadius: "6px", cursor: "pointer", width: "100%", marginTop: "8px", fontWeight: "bold" }}>
+            <button onClick={handleSaveRoute} style={{ backgroundColor: "#2ECC71", color: "white", border: "none", padding: "10px", borderRadius: "6px", cursor: "pointer", width: "100%", marginTop: "8px", fontWeight: "bold", boxSizing: "border-box" }}>
               Choose Eco Route & Earn
             </button>
           </div>
         )}
       </div>
 
-      {/* Slide-out Gamification Dashboard */}
+      {/* RESPONSIVE: Slide-out Gamification Dashboard */}
       <div style={{
-        position: "absolute", top: "0", left: isDashboardOpen ? "0" : "-350px", 
-        width: "350px", height: "100vh", backgroundColor: "white", zIndex: 2000,
+        position: "absolute", top: "0", 
+        left: isDashboardOpen ? "0" : "-100%", // Slides completely off-screen securely
+        width: "100%", maxWidth: "350px", // Full width on mobile, 350px on desktop
+        height: "100vh", backgroundColor: "white", zIndex: 2000,
         boxShadow: "4px 0 15px rgba(0,0,0,0.2)", transition: "left 0.3s ease",
         display: "flex", flexDirection: "column", color: "#333"
       }}>
         <div style={{ padding: "20px", backgroundColor: "#2ECC71", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ margin: 0 }}>Green Dashboard</h2>
-          <button onClick={toggleDashboard} style={{ background: "transparent", border: "none", color: "white", fontSize: "20px", cursor: "pointer" }}>✖</button>
+          <h2 style={{ margin: 0, fontSize: "1.5rem" }}>Green Dashboard</h2>
+          <button onClick={toggleDashboard} style={{ background: "transparent", border: "none", color: "white", fontSize: "24px", cursor: "pointer" }}>✖</button>
         </div>
-        
+
         <div style={{ display: "flex", borderBottom: "1px solid #ddd" }}>
-          <button onClick={() => setActiveTab('leaderboard')} style={{ flex: 1, padding: "15px", border: "none", color: "#333", background: activeTab === 'leaderboard' ? "#f8f9fa" : "white", fontWeight: activeTab === 'leaderboard' ? "bold" : "normal", cursor: "pointer" }}>Leaderboard</button>
-          <button onClick={() => setActiveTab('history')} style={{ flex: 1, padding: "15px", border: "none", color: "#333", background: activeTab === 'history' ? "#f8f9fa" : "white", fontWeight: activeTab === 'history' ? "bold" : "normal", cursor: "pointer" }}>My History</button>
+          <button onClick={() => setActiveTab('leaderboard')} style={{ flex: 1, padding: "15px", border: "none", color: "#333", background: activeTab === 'leaderboard' ? "#f8f9fa" : "white", fontWeight: activeTab === 'leaderboard' ? "bold" : "normal", cursor: "pointer", fontSize: "14px" }}>Leaderboard</button>
+          <button onClick={() => setActiveTab('history')} style={{ flex: 1, padding: "15px", border: "none", color: "#333", background: activeTab === 'history' ? "#f8f9fa" : "white", fontWeight: activeTab === 'history' ? "bold" : "normal", cursor: "pointer", fontSize: "14px" }}>My History</button>
         </div>
 
         <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
@@ -176,8 +174,8 @@ export default function Home() {
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {leaderboard.map((user, idx) => (
                 <li key={idx} style={{ padding: "12px 10px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", backgroundColor: user.username === currentUser.username ? "#e8f8f5" : "transparent" }}>
-                  <span><b>#{idx + 1}</b> {user.username} {user.username === currentUser.username && "(You)"}</span>
-                  <span style={{ color: "#2ECC71", fontWeight: "bold" }}>{user.ecoPoints} pts</span>
+                  <span style={{ fontSize: "14px" }}><b>#{idx + 1}</b> {user.username} {user.username === currentUser.username && "(You)"}</span>
+                  <span style={{ color: "#2ECC71", fontWeight: "bold", fontSize: "14px" }}>{user.ecoPoints} pts</span>
                 </li>
               ))}
             </ul>
@@ -186,8 +184,8 @@ export default function Home() {
               {history.length === 0 ? <p style={{ color: "#666" }}>No routes saved yet.</p> : history.map((route, idx) => (
                 <li key={idx} style={{ padding: "12px", borderBottom: "1px solid #eee", backgroundColor: "#f8f9fa", marginBottom: "8px", borderRadius: "5px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
-                    <b>Route {history.length - idx}</b>
-                    <span style={{ color: "#2ECC71", fontWeight: "bold" }}>+{route.pointsEarned} pts</span>
+                    <b style={{ fontSize: "14px" }}>Route {history.length - idx}</b>
+                    <span style={{ color: "#2ECC71", fontWeight: "bold", fontSize: "14px" }}>+{route.pointsEarned} pts</span>
                   </div>
                   <div style={{ fontSize: "12px", color: "#666" }}>Distance: {route.distanceKm} km</div>
                   <div style={{ fontSize: "12px", color: "#666" }}>Saved: {new Date(route.savedAt).toLocaleDateString()}</div>
@@ -199,28 +197,28 @@ export default function Home() {
       </div>
 
       <Map points={points} setPoints={setPoints} routes={routes} setRoutes={setRoutes} />
-      
-      {/* Floating Buttons: Bottom Left and Bottom Right */}
+
+      {/* RESPONSIVE: Floating Buttons (Bottom Left and Bottom Right) */}
       <button 
         onClick={() => setShowTutorial(true)} 
         style={{
-          position: "absolute", bottom: "30px", left: "30px", zIndex: 1000,
-          backgroundColor: "#9b59b6", color: "white", padding: "12px 24px",
-          border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "15px",
+          position: "absolute", bottom: "20px", left: "15px", zIndex: 1000,
+          backgroundColor: "#9b59b6", color: "white", padding: "10px 18px",
+          border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "14px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.3)", cursor: "pointer"
         }}>
-        📖 How to Use
+        📖 Guide
       </button>
 
       <button 
         onClick={() => setShowFeedback(true)} 
         style={{
-          position: "absolute", bottom: "30px", right: "30px", zIndex: 1000,
-          backgroundColor: "#3498DB", color: "white", padding: "12px 24px",
-          border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "15px",
+          position: "absolute", bottom: "20px", right: "15px", zIndex: 1000,
+          backgroundColor: "#3498DB", color: "white", padding: "10px 18px",
+          border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "14px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.3)", cursor: "pointer"
         }}>
-        ✉️ Contact Us
+        ✉️ Contact
       </button>
 
       {/* Modals */}

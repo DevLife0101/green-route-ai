@@ -22,9 +22,14 @@ export default function Home() {
 
   const [showFeedback, setShowFeedback] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  
+  // NEW: Loading state for route calculation
+  const [isCalculating, setIsCalculating] = useState(false); 
 
   useEffect(() => {
     if (points.length === 2) {
+      setIsCalculating(true); // Show loading badge
+      
       // The Python engine stays on Render!
       fetch('https://green-route-python.onrender.com/calculate-route', {
         method: 'POST',
@@ -39,6 +44,13 @@ export default function Home() {
       .then(res => res.json())
       .then(data => {
         if (data.success) setRoutes(data);
+      })
+      .catch(err => {
+        console.error("Routing error:", err);
+        alert("Failed to calculate route. Please try again.");
+      })
+      .finally(() => {
+        setIsCalculating(false); // Hide loading badge when finished
       });
     }
   }, [points]);
@@ -55,12 +67,10 @@ export default function Home() {
   }
 
   const fetchDashboardData = () => {
-    // ✅ Updated to Vercel Serverless API
     fetch('/api/leaderboard')
       .then(res => res.json())
       .then(data => { if (data.success) setLeaderboard(data.leaderboard); });
 
-    // ✅ Updated to Vercel Serverless API
     fetch(`/api/routes/history/${currentUser.username}`)
       .then(res => res.json())
       .then(data => { if (data.success) setHistory(data.history); });
@@ -73,7 +83,6 @@ export default function Home() {
 
   const handleSaveRoute = () => {
     if (!routes) return;
-    // ✅ Updated to Vercel Serverless API
     fetch('/api/routes/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -193,6 +202,19 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* NEW: Loading Indicator for Route Calculation */}
+      {isCalculating && (
+        <div style={{
+          position: "absolute", top: "80px", left: "50%", transform: "translateX(-50%)",
+          backgroundColor: "#f39c12", color: "white", padding: "10px 20px",
+          borderRadius: "30px", fontWeight: "bold", zIndex: 4000,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)", fontSize: "14px",
+          display: "flex", alignItems: "center", gap: "8px"
+        }}>
+          ⚙️ Calculating Eco Route...
+        </div>
+      )}
 
       <Map points={points} setPoints={setPoints} routes={routes} setRoutes={setRoutes} />
 

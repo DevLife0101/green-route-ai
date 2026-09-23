@@ -69,11 +69,12 @@ export default function Home() {
   }
 
   const fetchDashboardData = () => {
-    fetch('/api/leaderboard')
+    // Bypasses browser cache to show newly saved routes instantly
+    fetch('/api/leaderboard', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => { if (data.success) setLeaderboard(data.leaderboard); });
 
-    fetch(`/api/routes/history/${currentUser.username}`)
+    fetch(`/api/routes/history/${currentUser.username}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => { if (data.success) setHistory(data.history); });
   };

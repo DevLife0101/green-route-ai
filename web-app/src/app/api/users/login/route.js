@@ -1,19 +1,27 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '../../../../lib/mongodb';
-import User from '../../../../models/User';
+import { prisma } from '../../../../lib/prisma';
 
-export async function POST(request) {
+export async function POST(req) {
   try {
-    await dbConnect();
-    const { username, password } = await request.json();
-    const user = await User.findOne({ username });
-    
-    if (!user || user.password !== password) {
-      return NextResponse.json({ success: false, message: "Invalid username or password" }, { status: 401 });
+    const { username, password } = await req.json();
+
+    // Prisma: Find a unique user by their username
+    const user = await prisma.user.findUnique({
+      where: { username }
+    });
+
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
-    
-    return NextResponse.json({ success: true, message: "Login successful!", user }, { status: 200 });
+
+    // Check password (Note: In a real app, use bcrypt to hash and compare!)
+    if (user.password !== password) {
+      return NextResponse.json({ success: false, message: 'Invalid password' }, { status: 401 });
+    }
+
+    return NextResponse.json({ success: true, user });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("Login Error:", error);
+    return NextResponse.json({ success: false, error: 'Server error during login' }, { status: 500 });
   }
 }

@@ -69,12 +69,12 @@ export default function Home() {
   }
 
   const fetchDashboardData = () => {
-    // Bypasses browser cache to show newly saved routes instantly
     fetch('/api/leaderboard', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => { if (data.success) setLeaderboard(data.leaderboard); });
 
-    fetch(`/api/routes/history/${currentUser.username}`, { cache: 'no-store' })
+    // Added a timestamp query parameter (?t=...) to completely bypass Next.js caching
+    fetch(`/api/routes/history/${currentUser.username}?t=${Date.now()}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => { if (data.success) setHistory(data.history); });
   };

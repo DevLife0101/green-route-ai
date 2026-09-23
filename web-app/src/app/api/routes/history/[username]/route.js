@@ -1,19 +1,27 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import dbConnect from '../../../../../lib/mongodb';
-import User from '../../../../../models/User';
-import SavedRoute from '../../../../../models/SavedRoute';
+import { prisma } from '../../../../../lib/prisma';
 
-export async function GET(request, { params }) {
+export async function GET(req, { params }) {
   try {
-    await dbConnect();
     const { username } = params;
 
-    const user = await User.findOne({ username });
-    if (!user) return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    const user = await prisma.user.findUnique({
+      where: { username },
+      include: {
+        routes: {
+          orderBy: { savedAt: 'desc' }
+        }
+      }
+    });
 
-    const history = await SavedRoute.find({ userId: user._id }).sort({ savedAt: -1 });
-    return NextResponse.json({ success: true, history }, { status: 200 });
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, history: user.routes });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error("History Error:", error);
+    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
   }
 }

@@ -1,6 +1,38 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 
+// Decodes Google's compressed polyline algorithm into [[lat, lng], ...]
+function decodePolyline(encoded) {
+  if (!encoded) return [];
+  const poly = [];
+  let index = 0, len = encoded.length;
+  let lat = 0, lng = 0;
+
+  while (index < len) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = ((result & 1) !== 0 ? ~(result >> 1) : (result >> 1));
+    lng += dlng;
+
+    poly.push([lat / 1e5, lng / 1e5]);
+  }
+  return poly;
+}
+
 export async function POST(req) {
   try {
     const { start_lat, start_lon, end_lat, end_lon } = await req.json();
@@ -14,11 +46,10 @@ export async function POST(req) {
       origin: { location: { latLng: { latitude: start_lat, longitude: start_lon } } },
       destination: { location: { latLng: { latitude: end_lat, longitude: end_lon } } },
       travelMode: "DRIVE",
-      // TRAFFIC_AWARE_OPTIMAL is strictly required by Google to use eco-routing
       routingPreference: "TRAFFIC_AWARE_OPTIMAL",
       requestedReferenceRoutes: ["FUEL_EFFICIENT"],
       extraComputations: ["FUEL_CONSUMPTION"],
-      emissionType: "GASOLINE" 
+      emissionType: "GASOLINE"
     };
 
     const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
@@ -26,23 +57,21 @@ export async function POST(req) {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        // We strictly limit the requested fields so Google processes it blazing fast
         'X-Goog-FieldMask': 'routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.routeLabels,routes.travelAdvisory.fuelConsumptionMicroliters'
       },
       body: JSON.stringify(requestBody)
     });
 
     const data = await response.json();
-    
+
     if (!data.routes || data.routes.length === 0) {
       return NextResponse.json({ success: false, message: "No route found" }, { status: 404 });
     }
 
-    // Google labels the routes so we know which is standard vs eco
-    let standardRoute = data.routes.find(r => r.routeLabels && r.routeLabels.includes('DEFAULT_ROUTE')) || data.routes[0];
-    let ecoRoute = data.routes.find(r => r.routeLabels && r.routeLabels.includes('FUEL_EFFICIENT')) || standardRoute;
+    const standardRoute = data.routes.find(r => r.routeLabels?.includes('DEFAULT_ROUTE')) || data.routes[0];
+    const ecoRoute = data.routes.find(r => r.routeLabels?.includes('FUEL_EFFICIENT')) || standardRoute;
 
-    // Convert microliters to grams of CO2 (1 liter of gas = ~2310g CO2)
+    // Fuel calculation (1L gasoline ≈ 2310g CO2)
     const standardFuelLiters = (standardRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
     const ecoFuelLiters = (ecoRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
     const co2Saved = Math.max(0, Math.round((standardFuelLiters - ecoFuelLiters) * 2310));
@@ -54,8 +83,9 @@ export async function POST(req) {
         eco_distance_km: (ecoRoute.distanceMeters / 1000).toFixed(2),
         co2_saved_grams: co2Saved
       },
-      standard_polyline: standardRoute.polyline.encodedPolyline,
-      eco_polyline: ecoRoute.polyline.encodedPolyline
+      // Decoded coordinate arrays ready for Leaflet/Mapbox rendering:
+      standard_route: decodePolyline(standardRoute.polyline?.encodedPolyline),
+      eco_route: decodePolyline(ecoRoute.polyline?.encodedPolyline)
     });
 
   } catch (error) {

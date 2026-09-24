@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, useMap, CircleMarker } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 delete L.Icon.Default.prototype._getIconUrl;

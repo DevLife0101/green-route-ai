@@ -1,4 +1,5 @@
 import "./globals.css";
+import 'leaflet/dist/leaflet.css'; // Add it here instead!
 import PageTransition from "../components/PageTransition";
 
 export const metadata = {

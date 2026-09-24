@@ -32,7 +32,8 @@ export default function Home() {
         setIsCalculating(true); // Safely called inside the async function
         
         try {
-          const res = await fetch('https://green-route-python.onrender.com/calculate-route', {
+          // Changed to our new local, fast Next.js endpoint
+          const res = await fetch('/api/routes/calculate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

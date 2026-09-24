@@ -5,6 +5,7 @@ import Auth from '../components/Auth';
 import Landing from '../components/Landing';
 import Feedback from '../components/Feedback';
 import Tutorial from '../components/Tutorial';
+import SearchControls from '../components/SearchControls'; // NEW: Import the search component
 
 const Map = dynamic(() => import('../components/Map'), { ssr: false });
 
@@ -23,16 +24,15 @@ export default function Home() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   
-  // NEW: Loading state for route calculation
+  // Loading state for route calculation
   const [isCalculating, setIsCalculating] = useState(false); 
 
   useEffect(() => {
     const calculateRoute = async () => {
       if (points.length === 2) {
-        setIsCalculating(true); // Safely called inside the async function
+        setIsCalculating(true); 
         
         try {
-          // Changed to our new local, fast Next.js endpoint
           const res = await fetch('/api/routes/calculate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -50,7 +50,7 @@ export default function Home() {
           console.error("Routing error:", err);
           alert("Failed to calculate route. Please try again.");
         } finally {
-          setIsCalculating(false); // Hide loading badge when finished
+          setIsCalculating(false); 
         }
       }
     };
@@ -74,7 +74,6 @@ export default function Home() {
       .then(res => res.json())
       .then(data => { if (data.success) setLeaderboard(data.leaderboard); });
 
-    // Added a timestamp query parameter (?t=...) to completely bypass Next.js caching
     fetch(`/api/routes/history/${currentUser.username}?t=${Date.now()}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => { if (data.success) setHistory(data.history); });
@@ -119,6 +118,7 @@ export default function Home() {
   return (
     <div style={{ position: "relative", height: "100dvh", width: "100vw", overflow: "hidden" }}>
 
+      {/* User Profile & Points Panel (Top Right) */}
       <div style={{
         position: "absolute", top: "15px", right: "15px", zIndex: 2000,
         backgroundColor: "white", padding: "16px", borderRadius: "10px",
@@ -162,6 +162,13 @@ export default function Home() {
         )}
       </div>
 
+      {/* NEW: Search Bar Component (Top Left) */}
+      <SearchControls onSearch={(newPoints) => {
+        setRoutes(null); // Clear old route
+        setPoints(newPoints); // Set new points, which triggers the Google API via useEffect
+      }} />
+
+      {/* Green Dashboard Sidebar */}
       <div style={{
         position: "absolute", top: "0", 
         left: isDashboardOpen ? "0" : "-100%", 

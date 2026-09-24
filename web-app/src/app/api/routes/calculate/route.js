@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 
-// Decodes Google's compressed polyline algorithm into [[lat, lng], ...]
 function decodePolyline(encoded) {
   if (!encoded) return [];
   const poly = [];
@@ -49,7 +48,11 @@ export async function POST(req) {
       routingPreference: "TRAFFIC_AWARE_OPTIMAL",
       requestedReferenceRoutes: ["FUEL_EFFICIENT"],
       extraComputations: ["FUEL_CONSUMPTION"],
-      emissionType: "GASOLINE"
+      routeModifiers: {
+        vehicleInfo: {
+          emissionType: "GASOLINE"
+        }
+      }
     };
 
     const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
@@ -65,13 +68,13 @@ export async function POST(req) {
     const data = await response.json();
 
     if (!data.routes || data.routes.length === 0) {
-      return NextResponse.json({ success: false, message: "No route found" }, { status: 404 });
+      console.log("GOOGLE API ERROR:", JSON.stringify(data, null, 2));
+      return NextResponse.json({ success: false, message: "No route found", details: data }, { status: 404 });
     }
 
     const standardRoute = data.routes.find(r => r.routeLabels?.includes('DEFAULT_ROUTE')) || data.routes[0];
     const ecoRoute = data.routes.find(r => r.routeLabels?.includes('FUEL_EFFICIENT')) || standardRoute;
 
-    // Fuel calculation (1L gasoline ≈ 2310g CO2)
     const standardFuelLiters = (standardRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
     const ecoFuelLiters = (ecoRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
     const co2Saved = Math.max(0, Math.round((standardFuelLiters - ecoFuelLiters) * 2310));
@@ -83,7 +86,6 @@ export async function POST(req) {
         eco_distance_km: (ecoRoute.distanceMeters / 1000).toFixed(2),
         co2_saved_grams: co2Saved
       },
-      // Decoded coordinate arrays ready for Leaflet/Mapbox rendering:
       standard_route: decodePolyline(standardRoute.polyline?.encodedPolyline),
       eco_route: decodePolyline(ecoRoute.polyline?.encodedPolyline)
     });

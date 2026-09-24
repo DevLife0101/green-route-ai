@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Auth from '../components/Auth';
 import Landing from '../components/Landing';
 import Feedback from '../components/Feedback';
 import Tutorial from '../components/Tutorial';
-import SearchControls from '../components/SearchControls'; // NEW: Import the search component
+import SearchControls from '../components/SearchControls';
 
 const Map = dynamic(() => import('../components/Map'), { ssr: false });
 
@@ -15,7 +15,7 @@ export default function Home() {
 
   const [points, setPoints] = useState([]);
   const [routes, setRoutes] = useState(null);
-  const [ecoPoints, setEcoPoints] = useState(0); 
+  const [ecoPoints, setEcoPoints] = useState(0);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('leaderboard');
   const [leaderboard, setLeaderboard] = useState([]);
@@ -23,40 +23,8 @@ export default function Home() {
 
   const [showFeedback, setShowFeedback] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
-  
-  // Loading state for route calculation
-  const [isCalculating, setIsCalculating] = useState(false); 
-
-  useEffect(() => {
-    const calculateRoute = async () => {
-      if (points.length === 2) {
-        setIsCalculating(true); 
-        
-        try {
-          const res = await fetch('/api/routes/calculate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              start_lat: points[0].lat,
-              start_lon: points[0].lng,
-              end_lat: points[1].lat,
-              end_lon: points[1].lng
-            })
-          });
-          
-          const data = await res.json();
-          if (data.success) setRoutes(data);
-        } catch (err) {
-          console.error("Routing error:", err);
-          alert("Failed to calculate route. Please try again.");
-        } finally {
-          setIsCalculating(false); 
-        }
-      }
-    };
-
-    calculateRoute();
-  }, [points]);
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
 
   if (!currentUser && !showAuth) {
     return <Landing onGetStarted={() => setShowAuth(true)} />;
@@ -65,9 +33,41 @@ export default function Home() {
   if (!currentUser && showAuth) {
     return <Auth onLogin={(user) => {
       setCurrentUser(user);
-      setEcoPoints(user.ecoPoints); 
+      setEcoPoints(user.ecoPoints);
     }} />;
   }
+
+  const handleCalculateRoute = async ({ start, end, engineType }) => {
+    setIsCalculating(true);
+    setPoints([start, end]);
+    setRoutes(null);
+
+    try {
+      const res = await fetch('/api/routes/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start_lat: start.lat,
+          start_lon: start.lng,
+          end_lat: end.lat,
+          end_lon: end.lng,
+          engine_type: engineType
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setRoutes(data);
+      } else {
+        alert(data.message || "Failed to find a route.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error contacting the route service.");
+    } finally {
+      setIsCalculating(false);
+    }
+  };
 
   const fetchDashboardData = () => {
     fetch('/api/leaderboard', { cache: 'no-store' })
@@ -90,22 +90,22 @@ export default function Home() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: currentUser.username, 
+        username: currentUser.username,
         startCoords: [points[0].lat, points[0].lng],
         endCoords: [points[1].lat, points[1].lng],
         distanceKm: routes.stats.eco_distance_km
       })
     })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        alert(data.message);
-        setEcoPoints(data.totalPoints);
-        setRoutes(null);
-        setPoints([]);
-        fetchDashboardData(); 
-      }
-    });
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          setEcoPoints(data.totalPoints);
+          setRoutes(null);
+          setPoints([]);
+          fetchDashboardData();
+        }
+      });
   };
 
   const handleLogout = () => {
@@ -116,97 +116,147 @@ export default function Home() {
   };
 
   return (
-    <div style={{ position: "relative", height: "100dvh", width: "100vw", overflow: "hidden" }}>
-
-      {/* User Profile & Points Panel (Top Right) */}
-      <div style={{
-        position: "absolute", top: "15px", right: "15px", zIndex: 2000,
-        backgroundColor: "white", padding: "16px", borderRadius: "10px",
-        boxShadow: "0 4px 15px rgba(0,0,0,0.15)", 
-        width: "100%", maxWidth: "280px", 
-        color: "#333", boxSizing: "border-box"
+    <div style={{ minHeight: "100vh", backgroundColor: "#f8fafc", color: "#0f172a", display: "flex", flexDirection: "column" }}>
+      
+      {/* Top Navbar */}
+      <header style={{
+        backgroundColor: "#ffffff",
+        borderBottom: "1px solid #e2e8f0",
+        padding: "12px 20px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: "10px"
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: "0", fontSize: "1.1rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "5px" }}>
-            {currentUser.username}
-          </h3>
-          <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-            <button onClick={toggleDashboard} style={{ background: "#f39c12", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
-              🏆 Rank
-            </button>
-            <button onClick={handleLogout} style={{ background: "#e74c3c", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>
-              Logout
-            </button>
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "20px" }}>🌱</span>
+          <h1 style={{ margin: 0, fontSize: "1.15rem", fontWeight: "700", color: "#059669" }}>
+            Green Route AI
+          </h1>
         </div>
-        <p style={{ margin: "12px 0", color: "#2ECC71", fontWeight: "bold" }}>
-          🌱 {ecoPoints} Total Points
-        </p>
 
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ backgroundColor: "#ecfdf5", color: "#059669", padding: "6px 12px", borderRadius: "20px", fontSize: "13px", fontWeight: "700" }}>
+            {ecoPoints} Pts
+          </span>
+          <button onClick={toggleDashboard} style={{ background: "#f59e0b", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+            🏆 Rank
+          </button>
+          <button onClick={() => setShowTutorial(true)} style={{ background: "#8b5cf6", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+            Guide
+          </button>
+          <button onClick={() => setShowFeedback(true)} style={{ background: "#0284c7", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+            Contact
+          </button>
+          <button onClick={handleLogout} style={{ background: "#ef4444", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content Container */}
+      <main style={{ maxWidth: "1100px", width: "100%", margin: "0 auto", padding: "20px 16px", display: "flex", flexDirection: "column", gap: "16px", boxSizing: "border-box" }}>
+        
+        {/* Planner Component Above Map */}
+        <SearchControls onCalculate={handleCalculateRoute} isCalculating={isCalculating} />
+
+        {/* Route Stats Card (Shows when a route is computed) */}
         {routes && (
-          <div>
-            <hr style={{ border: "0.5px solid #eee" }} />
-            <p style={{ margin: "6px 0", fontSize: "14px" }}>
-              🔵 <b>Standard:</b> {routes.stats.standard_distance_km} km
-            </p>
-            <p style={{ margin: "6px 0", fontSize: "14px", color: "#27ae60" }}>
-              🟢 <b>Eco Route:</b> {routes.stats.eco_distance_km} km
-            </p>
-            <p style={{ margin: "8px 0", fontSize: "13px", fontWeight: "bold", color: "#16a085" }}>
-              💨 CO₂ Saved: {routes.stats.co2_saved_grams}g
-            </p>
-            <button onClick={handleSaveRoute} style={{ backgroundColor: "#2ECC71", color: "white", border: "none", padding: "10px", borderRadius: "6px", cursor: "pointer", width: "100%", marginTop: "8px", fontWeight: "bold", boxSizing: "border-box" }}>
+          <div style={{
+            backgroundColor: "#ffffff",
+            padding: "16px 20px",
+            borderRadius: "12px",
+            border: "1px solid #e2e8f0",
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "12px"
+          }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "14px" }}>
+              <div>🔵 <b>Standard:</b> {routes.stats.standard_distance_km} km</div>
+              <div style={{ color: "#059669" }}>🟢 <b>Eco Route:</b> {routes.stats.eco_distance_km} km</div>
+              <div style={{ color: "#0d9488", fontWeight: "700" }}>💨 CO₂ Saved: {routes.stats.co2_saved_grams}g</div>
+            </div>
+            <button
+              onClick={handleSaveRoute}
+              style={{
+                backgroundColor: "#10b981",
+                color: "#ffffff",
+                border: "none",
+                padding: "10px 18px",
+                borderRadius: "8px",
+                fontWeight: "600",
+                fontSize: "14px",
+                cursor: "pointer"
+              }}
+            >
               Choose Eco Route & Earn
             </button>
           </div>
         )}
-      </div>
 
-      {/* NEW: Search Bar Component (Top Left) */}
-      <SearchControls onSearch={(newPoints) => {
-        setRoutes(null); // Clear old route
-        setPoints(newPoints); // Set new points, which triggers the Google API via useEffect
-      }} />
+        {/* Medium-Sized / Expandable Map View */}
+        <Map
+          points={points}
+          setPoints={setPoints}
+          routes={routes}
+          setRoutes={setRoutes}
+          isExpanded={isMapExpanded}
+          setIsExpanded={setIsMapExpanded}
+        />
+      </main>
 
-      {/* Green Dashboard Sidebar */}
+      {/* Slide-out Dashboard Drawer */}
       <div style={{
-        position: "absolute", top: "0", 
-        left: isDashboardOpen ? "0" : "-100%", 
-        width: "100%", maxWidth: "350px", 
-        height: "100dvh", backgroundColor: "white", zIndex: 3000, 
-        boxShadow: "4px 0 15px rgba(0,0,0,0.2)", transition: "left 0.3s ease",
-        display: "flex", flexDirection: "column", color: "#333"
+        position: "fixed",
+        top: 0,
+        left: isDashboardOpen ? 0 : "-100%",
+        width: "100%",
+        maxWidth: "360px",
+        height: "100vh",
+        backgroundColor: "#ffffff",
+        zIndex: 10000,
+        boxShadow: "4px 0 20px rgba(0,0,0,0.15)",
+        transition: "left 0.3s ease",
+        display: "flex",
+        flexDirection: "column"
       }}>
-        <div style={{ padding: "20px", backgroundColor: "#2ECC71", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ margin: 0, fontSize: "1.5rem" }}>Green Dashboard</h2>
-          <button onClick={toggleDashboard} style={{ background: "transparent", border: "none", color: "white", fontSize: "24px", cursor: "pointer" }}>✖</button>
+        <div style={{ padding: "18px 20px", backgroundColor: "#10b981", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Green Dashboard</h2>
+          <button onClick={toggleDashboard} style={{ background: "transparent", border: "none", color: "white", fontSize: "20px", cursor: "pointer" }}>✖</button>
         </div>
 
-        <div style={{ display: "flex", borderBottom: "1px solid #ddd" }}>
-          <button onClick={() => setActiveTab('leaderboard')} style={{ flex: 1, padding: "15px", border: "none", color: "#333", background: activeTab === 'leaderboard' ? "#f8f9fa" : "white", fontWeight: activeTab === 'leaderboard' ? "bold" : "normal", cursor: "pointer", fontSize: "14px" }}>Leaderboard</button>
-          <button onClick={() => setActiveTab('history')} style={{ flex: 1, padding: "15px", border: "none", color: "#333", background: activeTab === 'history' ? "#f8f9fa" : "white", fontWeight: activeTab === 'history' ? "bold" : "normal", cursor: "pointer", fontSize: "14px" }}>My History</button>
+        <div style={{ display: "flex", borderBottom: "1px solid #e2e8f0" }}>
+          <button onClick={() => setActiveTab('leaderboard')} style={{ flex: 1, padding: "12px", border: "none", background: activeTab === 'leaderboard' ? "#f1f5f9" : "white", fontWeight: activeTab === 'leaderboard' ? "700" : "normal", cursor: "pointer" }}>
+            Leaderboard
+          </button>
+          <button onClick={() => setActiveTab('history')} style={{ flex: 1, padding: "12px", border: "none", background: activeTab === 'history' ? "#f1f5f9" : "white", fontWeight: activeTab === 'history' ? "700" : "normal", cursor: "pointer" }}>
+            My History
+          </button>
         </div>
 
-        <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
+        <div style={{ padding: "16px", overflowY: "auto", flex: 1 }}>
           {activeTab === 'leaderboard' ? (
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {leaderboard.map((user, idx) => (
-                <li key={idx} style={{ padding: "12px 10px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", backgroundColor: user.username === currentUser.username ? "#e8f8f5" : "transparent" }}>
-                  <span style={{ fontSize: "14px" }}><b>#{idx + 1}</b> {user.username} {user.username === currentUser.username && "(You)"}</span>
-                  <span style={{ color: "#2ECC71", fontWeight: "bold", fontSize: "14px" }}>{user.ecoPoints} pts</span>
+                <li key={idx} style={{ padding: "10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", backgroundColor: user.username === currentUser.username ? "#ecfdf5" : "transparent" }}>
+                  <span><b>#{idx + 1}</b> {user.username} {user.username === currentUser.username && "(You)"}</span>
+                  <span style={{ color: "#059669", fontWeight: "700" }}>{user.ecoPoints} pts</span>
                 </li>
               ))}
             </ul>
           ) : (
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              {history.length === 0 ? <p style={{ color: "#666" }}>No routes saved yet.</p> : history.map((route, idx) => (
-                <li key={idx} style={{ padding: "12px", borderBottom: "1px solid #eee", backgroundColor: "#f8f9fa", marginBottom: "8px", borderRadius: "5px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
-                    <b style={{ fontSize: "14px" }}>Route {history.length - idx}</b>
-                    <span style={{ color: "#2ECC71", fontWeight: "bold", fontSize: "14px" }}>+{route.pointsEarned} pts</span>
+              {history.length === 0 ? <p style={{ color: "#64748b" }}>No routes saved yet.</p> : history.map((route, idx) => (
+                <li key={idx} style={{ padding: "10px", backgroundColor: "#f8fafc", marginBottom: "8px", borderRadius: "6px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <b>Route {history.length - idx}</b>
+                    <span style={{ color: "#059669", fontWeight: "700" }}>+{route.pointsEarned} pts</span>
                   </div>
-                  <div style={{ fontSize: "12px", color: "#666" }}>Distance: {route.distanceKm} km</div>
-                  <div style={{ fontSize: "12px", color: "#666" }}>Saved: {new Date(route.savedAt).toLocaleDateString()}</div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>Distance: {route.distanceKm} km</div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>Saved: {new Date(route.savedAt).toLocaleDateString()}</div>
                 </li>
               ))}
             </ul>
@@ -214,49 +264,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Loading Indicator for Route Calculation */}
-      {isCalculating && (
-        <div style={{
-          position: "absolute", top: "80px", left: "50%", transform: "translateX(-50%)",
-          backgroundColor: "#f39c12", color: "white", padding: "10px 20px",
-          borderRadius: "30px", fontWeight: "bold", zIndex: 4000,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.2)", fontSize: "14px",
-          display: "flex", alignItems: "center", gap: "8px"
-        }}>
-          ⚙️ Calculating Eco Route...
-        </div>
-      )}
-
-      <Map points={points} setPoints={setPoints} routes={routes} setRoutes={setRoutes} />
-
-      <button 
-        onClick={() => setShowTutorial(true)} 
-        style={{
-          position: "absolute", bottom: "40px", left: "15px", zIndex: 2000,
-          backgroundColor: "#9b59b6", color: "white", padding: "10px 18px",
-          border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "14px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)", cursor: "pointer"
-        }}>
-        📖 Guide
-      </button>
-
-      <button 
-        onClick={() => setShowFeedback(true)} 
-        style={{
-          position: "absolute", bottom: "40px", right: "15px", zIndex: 2000,
-          backgroundColor: "#3498DB", color: "white", padding: "10px 18px",
-          border: "none", borderRadius: "30px", fontWeight: "bold", fontSize: "14px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)", cursor: "pointer"
-        }}>
-        ✉️ Contact
-      </button>
-
-      {showFeedback && (
-        <Feedback currentUser={currentUser} onClose={() => setShowFeedback(false)} />
-      )}
-      {showTutorial && (
-        <Tutorial onClose={() => setShowTutorial(false)} />
-      )}
+      {showFeedback && <Feedback currentUser={currentUser} onClose={() => setShowFeedback(false)} />}
+      {showTutorial && <Tutorial onClose={() => setShowTutorial(false)} />}
     </div>
   );
 }

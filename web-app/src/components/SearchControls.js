@@ -1,8 +1,7 @@
 "use client";
 import { useState, useRef } from 'react';
 
-// A reusable autocomplete input component
-function AutocompleteInput({ placeholder, onLocationSelect }) {
+function AutocompleteInput({ label, placeholder, onLocationSelect }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -16,12 +15,11 @@ function AutocompleteInput({ placeholder, onLocationSelect }) {
       return;
     }
     setIsLoading(true);
-    
-    // Fetch real locations from OpenStreetMap
+
     fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&limit=5`)
       .then(res => res.json())
       .then(data => {
-        setResults(data);
+        setResults(data || []);
         setIsOpen(true);
         setIsLoading(false);
       })
@@ -31,134 +29,176 @@ function AutocompleteInput({ placeholder, onLocationSelect }) {
   const handleType = (e) => {
     const val = e.target.value;
     setQuery(val);
-    
-    // Clear the validated location state the moment they modify the text
-    onLocationSelect(null); 
+    onLocationSelect(null);
 
-    // Debounce: Wait 800ms after they stop typing before hitting the API 
-    // to prevent getting blocked for making too many requests
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     debounceTimeout.current = setTimeout(() => {
       searchLocation(val);
-    }, 800);
+    }, 600);
   };
 
   const handleSelect = (item) => {
-    setQuery(item.display_name); // Fill the input with the full, correct address
+    setQuery(item.display_name);
     setIsOpen(false);
-    
-    // Pass the exact, verified GPS coordinates back up
     onLocationSelect({
       lat: parseFloat(item.lat),
-      lng: parseFloat(item.lon)
+      lng: parseFloat(item.lon),
+      name: item.display_name
     });
   };
 
   return (
-    <div style={{ position: "relative", width: "100%" }}>
-      <input
-        type="text"
-        placeholder={placeholder}
-        value={query}
-        onChange={handleType}
-        style={{ padding: "10px", borderRadius: "6px", border: "1px solid #ddd", width: "100%", boxSizing: "border-box", fontSize: "14px" }}
-      />
-      {isLoading && (
-        <span style={{ position: 'absolute', right: '10px', top: '10px', fontSize: '14px' }}>⏳</span>
-      )}
+    <div style={{ position: "relative", flex: 1, minWidth: "220px" }}>
+      <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#475569", marginBottom: "4px" }}>
+        {label}
+      </label>
+      <div style={{ position: "relative" }}>
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={query}
+          onChange={handleType}
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            borderRadius: "8px",
+            border: "1px solid #cbd5e1",
+            fontSize: "14px",
+            boxSizing: "border-box",
+            outline: "none"
+          }}
+        />
+        {isLoading && (
+          <span style={{ position: "absolute", right: "10px", top: "10px", fontSize: "12px" }}>⏳</span>
+        )}
+      </div>
 
       {isOpen && results.length > 0 && (
         <ul style={{
-          position: "absolute", top: "100%", left: 0, width: "100%", backgroundColor: "white",
-          border: "1px solid #ddd", borderRadius: "6px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-          listStyle: "none", margin: "5px 0 0 0", padding: 0, zIndex: 5000, maxHeight: "200px", overflowY: "auto"
+          position: "absolute",
+          top: "100%",
+          left: 0,
+          right: 0,
+          backgroundColor: "#ffffff",
+          border: "1px solid #cbd5e1",
+          borderRadius: "8px",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+          listStyle: "none",
+          margin: "4px 0 0 0",
+          padding: 0,
+          zIndex: 5000,
+          maxHeight: "180px",
+          overflowY: "auto"
         }}>
           {results.map((item, idx) => (
             <li
               key={idx}
               onClick={() => handleSelect(item)}
-              style={{ padding: "10px", borderBottom: "1px solid #eee", cursor: "pointer", fontSize: "12px", color: "#333", lineHeight: "1.4" }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+              style={{
+                padding: "8px 12px",
+                borderBottom: "1px solid #f1f5f9",
+                cursor: "pointer",
+                fontSize: "13px",
+                color: "#1e293b",
+                lineHeight: "1.4"
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
             >
               {item.display_name}
             </li>
           ))}
         </ul>
       )}
-      
-      {/* Show a warning if they typed something but nothing was found */}
-      {isOpen && query && results.length === 0 && !isLoading && (
-        <div style={{ position: "absolute", top: "100%", left: 0, width: "100%", backgroundColor: "#fff3f3", padding: "10px", border: "1px solid #ffcaca", borderRadius: "6px", fontSize: "12px", color: "#c0392b", marginTop: "5px", zIndex: 5000, boxSizing: "border-box" }}>
-          No location found. Try typing a broader area (e.g., "City, State").
-        </div>
-      )}
     </div>
   );
 }
 
-export default function SearchControls({ onSearch }) {
-  // We now strictly store coordinates, not just text strings
+export default function SearchControls({ onCalculate, isCalculating }) {
   const [startCoords, setStartCoords] = useState(null);
   const [endCoords, setEndCoords] = useState(null);
+  const [engineType, setEngineType] = useState("GASOLINE");
 
-  const handleSearch = () => {
-    // Strictly prevent the search if both locations haven't been validated via the dropdown
+  const handleSubmit = (e) => {
+    e.preventDefault();
     if (!startCoords || !endCoords) {
-      alert("⚠️ You must select a valid start and destination from the dropdown list.");
+      alert("⚠️ Please select both a start location and destination from the dropdown.");
       return;
     }
-    
-    // Pass the perfectly validated coordinates directly to your map
-    onSearch([startCoords, endCoords]);
+    onCalculate({
+      start: startCoords,
+      end: endCoords,
+      engineType
+    });
   };
 
   return (
-    <div style={{
-      position: "absolute",
-      top: "15px",
-      left: "15px",
-      zIndex: 2000,
-      backgroundColor: "white",
-      padding: "16px",
-      borderRadius: "10px",
-      boxShadow: "0 4px 15px rgba(0,0,0,0.15)",
-      width: "100%",
-      maxWidth: "320px",
+    <form onSubmit={handleSubmit} style={{
+      backgroundColor: "#ffffff",
+      padding: "18px 20px",
+      borderRadius: "12px",
+      border: "1px solid #e2e8f0",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
       display: "flex",
-      flexDirection: "column",
-      gap: "12px"
+      flexWrap: "wrap",
+      gap: "14px",
+      alignItems: "flex-end"
     }}>
-      <h3 style={{ margin: "0 0 2px 0", fontSize: "16px", color: "#333" }}>🔍 Plan Eco Route</h3>
-      
       <AutocompleteInput 
-        placeholder="Start (e.g., Shimla)" 
+        label="Origin" 
+        placeholder="Start location..." 
         onLocationSelect={setStartCoords} 
       />
-      
+
       <AutocompleteInput 
-        placeholder="Destination (e.g., Delhi)" 
+        label="Destination" 
+        placeholder="Destination..." 
         onLocationSelect={setEndCoords} 
       />
-      
-      <button 
-        onClick={handleSearch} 
-        style={{ 
-          backgroundColor: "#3498DB", 
-          color: "white", 
-          border: "none", 
-          padding: "12px", 
-          borderRadius: "6px", 
-          cursor: "pointer", 
-          fontWeight: "bold",
-          marginTop: "4px",
+
+      <div style={{ minWidth: "160px", flex: "0 1 180px" }}>
+        <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#475569", marginBottom: "4px" }}>
+          Vehicle Type
+        </label>
+        <select
+          value={engineType}
+          onChange={(e) => setEngineType(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            borderRadius: "8px",
+            border: "1px solid #cbd5e1",
+            fontSize: "14px",
+            backgroundColor: "#ffffff",
+            color: "#1e293b",
+            outline: "none"
+          }}
+        >
+          <option value="GASOLINE">🚗 Petrol (Gasoline)</option>
+          <option value="DIESEL">⛽ Diesel Car</option>
+          <option value="ELECTRIC">⚡ Electric (EV)</option>
+          <option value="HYBRID">🍃 Hybrid Car</option>
+        </select>
+      </div>
+
+      <button
+        type="submit"
+        disabled={isCalculating}
+        style={{
+          padding: "11px 22px",
+          backgroundColor: isCalculating ? "#94a3b8" : "#10b981",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: "8px",
+          fontWeight: "600",
+          fontSize: "14px",
+          cursor: isCalculating ? "not-allowed" : "pointer",
+          flex: "0 0 auto",
           transition: "background-color 0.2s"
         }}
-        onMouseEnter={(e) => e.target.style.backgroundColor = '#2980B9'}
-        onMouseLeave={(e) => e.target.style.backgroundColor = '#3498DB'}
       >
-        Find Route
+        {isCalculating ? "Calculating..." : "Find Green Route"}
       </button>
-    </div>
+    </form>
   );
 }

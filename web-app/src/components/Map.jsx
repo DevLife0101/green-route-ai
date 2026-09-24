@@ -1,6 +1,6 @@
 "use client";
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, useMap } from 'react-leaflet';
+import { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, useMap, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -28,17 +28,12 @@ function MapClicker({ setPoints, points, setRoutes }) {
 
 // Automatically adjusts the map camera to frame the calculated route perfectly
 function RouteFitter({ routes }) {
-  const map = useMap(); // Hooks into the map instance
+  const map = useMap(); 
 
   useEffect(() => {
     if (routes && routes.standard_route && routes.standard_route.length > 0) {
-      // Gather all points from both routes to find the outermost edges
       const allPoints = [...routes.standard_route, ...(routes.eco_route || [])];
-      
-      // Create a Leaflet LatLngBounds object
       const bounds = L.latLngBounds(allPoints);
-      
-      // Tell Leaflet to smoothly fly and fit those bounds on the screen
       map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
     }
   }, [routes, map]);
@@ -46,38 +41,78 @@ function RouteFitter({ routes }) {
   return null;
 }
 
-// Live GPS Locator Button
+// Upgraded GPS Locator Button with Live Position Tracking
 function GPSLocator() {
   const map = useMap(); 
-  
+  const [position, setPosition] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
+
+  useEffect(() => {
+    // Define what happens when the browser successfully finds the GPS coordinates
+    const onLocationFound = (e) => {
+      setPosition(e.latlng); // Save the exact coordinates to draw the blue dot
+      map.flyTo(e.latlng, 16, { duration: 1.5 }); // Zoom in closer (level 16)
+      setIsLocating(false);
+    };
+
+    // Define what happens if the user denies permissions or the GPS fails
+    const onLocationError = (e) => {
+      alert("Could not access your location. Please check browser GPS permissions.");
+      setIsLocating(false);
+    };
+
+    // Attach listeners
+    map.on("locationfound", onLocationFound);
+    map.on("locationerror", onLocationError);
+
+    // Cleanup listeners so we don't cause memory leaks if the component re-renders
+    return () => {
+      map.off("locationfound", onLocationFound);
+      map.off("locationerror", onLocationError);
+    };
+  }, [map]);
+
   const handleLocate = () => {
-    map.locate().on("locationfound", function (e) {
-      map.flyTo(e.latlng, 15);
-    }).on("locationerror", function (e) {
-      alert("Could not access your location. Please check browser permissions.");
-    });
+    setIsLocating(true);
+    // enableHighAccuracy forces the device GPS chip to be used if available
+    map.locate({ enableHighAccuracy: true }); 
   };
 
   return (
-    <button 
-      onClick={handleLocate}
-      style={{
-        position: "absolute", 
-        bottom: "90px", 
-        right: "30px", 
-        zIndex: 1000,
-        backgroundColor: "#3498DB", 
-        color: "white", 
-        border: "none",
-        padding: "12px 20px", 
-        borderRadius: "30px", 
-        cursor: "pointer",
-        fontWeight: "bold", 
-        boxShadow: "0 4px 15px rgba(0,0,0,0.2)"
-      }}
-    >
-      📍 Find Me
-    </button>
+    <>
+      <button 
+        onClick={handleLocate}
+        disabled={isLocating}
+        style={{
+          position: "absolute", 
+          bottom: "90px", 
+          right: "30px", 
+          zIndex: 1000,
+          backgroundColor: isLocating ? "#95a5a6" : "#3498DB", 
+          color: "white", 
+          border: "none",
+          padding: "12px 20px", 
+          borderRadius: "30px", 
+          cursor: isLocating ? "wait" : "pointer",
+          fontWeight: "bold", 
+          boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
+          transition: "background-color 0.3s ease"
+        }}
+      >
+        {isLocating ? "⏳ Locating..." : "📍 Find Me"}
+      </button>
+
+      {/* Renders a classic Google Maps style "Blue Dot" at the user's exact GPS location */}
+      {position && (
+        <CircleMarker 
+          center={position} 
+          radius={8} 
+          pathOptions={{ fillColor: '#3498DB', color: 'white', weight: 2, fillOpacity: 1 }}
+        >
+          <Popup>You are here!</Popup>
+        </CircleMarker>
+      )}
+    </>
   );
 }
 
@@ -86,10 +121,6 @@ export default function Map({ points, setPoints, routes, setRoutes }) {
   
   return (
     <MapContainer center={position} zoom={14} style={{ height: "100%", width: "100%", zIndex: 1 }}>
-      {/* 
-        We set maxZoom to 19 to allow users to zoom in extremely close to view precise 
-        Google-calculated intersections. OpenStreetMap natively supports up to level 19.
-      */}
       <TileLayer 
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
         maxZoom={19} 
@@ -97,8 +128,6 @@ export default function Map({ points, setPoints, routes, setRoutes }) {
       
       <MapClicker setPoints={setPoints} points={points} setRoutes={setRoutes} />
       <GPSLocator />
-      
-      {/* Invisible component that listens for route calculations and moves the camera */}
       <RouteFitter routes={routes} />
 
       {points.map((p, i) => (
@@ -107,12 +136,10 @@ export default function Map({ points, setPoints, routes, setRoutes }) {
         </Marker>
       ))}
 
-      {/* Render the standard route with a dashed blue line */}
       {routes && routes.standard_route && (
         <Polyline positions={routes.standard_route} color="#3498DB" weight={4} opacity={0.6} dashArray="8, 8" />
       )}
       
-      {/* Render the eco route with a solid thick green line */}
       {routes && routes.eco_route && (
         <Polyline positions={routes.eco_route} color="#2ECC71" weight={6} opacity={0.8} />
       )}

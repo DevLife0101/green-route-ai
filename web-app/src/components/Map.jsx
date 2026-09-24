@@ -40,21 +40,21 @@ function RouteFitter({ routes }) {
   return null;
 }
 
-// Live GPS Tracker with Continuous Following
-function GPSLocator() {
+// Live GPS Tracker with Google Maps Navigation Behavior
+function GPSLocator({ points, routes }) {
   const map = useMap(); 
   const [position, setPosition] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
     const onLocationFound = (e) => {
-      setPosition(e.latlng); // Updates the blue dot instantly
+      setPosition(e.latlng); 
       
-      // If tracking mode is on, continuously pan the camera to keep the user in the center
+      // If tracking mode is on, lock the camera to the user's movement
       if (isTracking) {
-        map.flyTo(e.latlng, 17, { 
+        map.flyTo(e.latlng, 18, { 
           animate: true, 
-          duration: 0.5 // Fast transition for real-time driving feel
+          duration: 0.5 
         });
       }
     };
@@ -62,7 +62,7 @@ function GPSLocator() {
     const onLocationError = (e) => {
       alert("GPS connection lost or permission denied.");
       setIsTracking(false);
-      map.stopLocate(); // Stop polling if it fails
+      map.stopLocate(); 
     };
 
     map.on("locationfound", onLocationFound);
@@ -76,17 +76,29 @@ function GPSLocator() {
 
   const toggleTracking = () => {
     if (isTracking) {
-      // Stop live tracking
+      // STOP NAVIGATION
       setIsTracking(false);
       map.stopLocate(); 
+      
+      // When tracking stops, if there is a route, smoothly zoom back out to show the full trip
+      if (routes && routes.standard_route && routes.standard_route.length > 0) {
+        const allPoints = [...routes.standard_route, ...(routes.eco_route || [])];
+        const bounds = L.latLngBounds(allPoints);
+        map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
+      }
     } else {
-      // Start live tracking
+      // START NAVIGATION
       setIsTracking(true);
       map.locate({ 
-        watch: true,                // CRITICAL: Tells the GPS to continuously stream data
-        enableHighAccuracy: true,   // Forces hardware GPS chip usage
-        maximumAge: 0               // Rejects old/cached Wi-Fi locations
+        watch: true,                
+        enableHighAccuracy: true,   
+        maximumAge: 0               
       }); 
+
+      // Like Google Maps, snap the camera instantly to the Start Point at street level (zoom 18)
+      if (points && points.length > 0) {
+        map.flyTo(points[0], 18, { animate: true, duration: 1.5 });
+      }
     }
   };
 
@@ -99,7 +111,7 @@ function GPSLocator() {
           bottom: "90px", 
           right: "30px", 
           zIndex: 1000,
-          backgroundColor: isTracking ? "#e74c3c" : "#3498DB", // Turns red when active
+          backgroundColor: isTracking ? "#e74c3c" : "#3498DB", 
           color: "white", 
           border: "none",
           padding: "12px 20px", 
@@ -113,14 +125,12 @@ function GPSLocator() {
         {isTracking ? "🛑 Stop Tracking" : "📍 Start Drive Mode"}
       </button>
 
-      {/* The Live Blue Dot */}
       {position && (
         <CircleMarker 
           center={position} 
           radius={8} 
           pathOptions={{ fillColor: '#3498DB', color: 'white', weight: 3, fillOpacity: 1 }}
         >
-          {/* Optional pulsing radar effect circle behind the main dot */}
           <CircleMarker 
             center={position} 
             radius={20} 
@@ -143,7 +153,14 @@ export default function Map({ points, setPoints, routes, setRoutes }) {
       />
       
       <MapClicker setPoints={setPoints} points={points} setRoutes={setRoutes} />
-      <GPSLocator />
+      
+      {/* 
+        CRITICAL FIX: 
+        We pass `points` and `routes` down to the GPSLocator so it knows 
+        where the Start Point is and can zoom back out to the full Route. 
+      */}
+      <GPSLocator points={points} routes={routes} />
+      
       <RouteFitter routes={routes} />
 
       {points.map((p, i) => (

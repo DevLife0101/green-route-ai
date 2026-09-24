@@ -26,7 +26,6 @@ function MapClicker({ setPoints, points, setRoutes }) {
   return null;
 }
 
-// Automatically adjusts the map camera to frame the calculated route perfectly
 function RouteFitter({ routes }) {
   const map = useMap(); 
 
@@ -41,75 +40,92 @@ function RouteFitter({ routes }) {
   return null;
 }
 
-// Upgraded GPS Locator Button with Live Position Tracking
+// Live GPS Tracker with Continuous Following
 function GPSLocator() {
   const map = useMap(); 
   const [position, setPosition] = useState(null);
-  const [isLocating, setIsLocating] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
 
   useEffect(() => {
-    // Define what happens when the browser successfully finds the GPS coordinates
     const onLocationFound = (e) => {
-      setPosition(e.latlng); // Save the exact coordinates to draw the blue dot
-      map.flyTo(e.latlng, 16, { duration: 1.5 }); // Zoom in closer (level 16)
-      setIsLocating(false);
+      setPosition(e.latlng); // Updates the blue dot instantly
+      
+      // If tracking mode is on, continuously pan the camera to keep the user in the center
+      if (isTracking) {
+        map.flyTo(e.latlng, 17, { 
+          animate: true, 
+          duration: 0.5 // Fast transition for real-time driving feel
+        });
+      }
     };
 
-    // Define what happens if the user denies permissions or the GPS fails
     const onLocationError = (e) => {
-      alert("Could not access your location. Please check browser GPS permissions.");
-      setIsLocating(false);
+      alert("GPS connection lost or permission denied.");
+      setIsTracking(false);
+      map.stopLocate(); // Stop polling if it fails
     };
 
-    // Attach listeners
     map.on("locationfound", onLocationFound);
     map.on("locationerror", onLocationError);
 
-    // Cleanup listeners so we don't cause memory leaks if the component re-renders
     return () => {
       map.off("locationfound", onLocationFound);
       map.off("locationerror", onLocationError);
     };
-  }, [map]);
+  }, [map, isTracking]);
 
-  const handleLocate = () => {
-    setIsLocating(true);
-    // enableHighAccuracy forces the device GPS chip to be used if available
-    map.locate({ enableHighAccuracy: true }); 
+  const toggleTracking = () => {
+    if (isTracking) {
+      // Stop live tracking
+      setIsTracking(false);
+      map.stopLocate(); 
+    } else {
+      // Start live tracking
+      setIsTracking(true);
+      map.locate({ 
+        watch: true,                // CRITICAL: Tells the GPS to continuously stream data
+        enableHighAccuracy: true,   // Forces hardware GPS chip usage
+        maximumAge: 0               // Rejects old/cached Wi-Fi locations
+      }); 
+    }
   };
 
   return (
     <>
       <button 
-        onClick={handleLocate}
-        disabled={isLocating}
+        onClick={toggleTracking}
         style={{
           position: "absolute", 
           bottom: "90px", 
           right: "30px", 
           zIndex: 1000,
-          backgroundColor: isLocating ? "#95a5a6" : "#3498DB", 
+          backgroundColor: isTracking ? "#e74c3c" : "#3498DB", // Turns red when active
           color: "white", 
           border: "none",
           padding: "12px 20px", 
           borderRadius: "30px", 
-          cursor: isLocating ? "wait" : "pointer",
+          cursor: "pointer",
           fontWeight: "bold", 
           boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
           transition: "background-color 0.3s ease"
         }}
       >
-        {isLocating ? "⏳ Locating..." : "📍 Find Me"}
+        {isTracking ? "🛑 Stop Tracking" : "📍 Start Drive Mode"}
       </button>
 
-      {/* Renders a classic Google Maps style "Blue Dot" at the user's exact GPS location */}
+      {/* The Live Blue Dot */}
       {position && (
         <CircleMarker 
           center={position} 
           radius={8} 
-          pathOptions={{ fillColor: '#3498DB', color: 'white', weight: 2, fillOpacity: 1 }}
+          pathOptions={{ fillColor: '#3498DB', color: 'white', weight: 3, fillOpacity: 1 }}
         >
-          <Popup>You are here!</Popup>
+          {/* Optional pulsing radar effect circle behind the main dot */}
+          <CircleMarker 
+            center={position} 
+            radius={20} 
+            pathOptions={{ fillColor: '#3498DB', color: 'none', fillOpacity: 0.2 }}
+          />
         </CircleMarker>
       )}
     </>

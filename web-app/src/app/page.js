@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
+import { motion } from 'framer-motion';
 import Auth from '../components/Auth';
 import Landing from '../components/Landing';
 import Feedback from '../components/Feedback';
@@ -118,38 +119,35 @@ export default function Home() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8fafc", color: "#0f172a", display: "flex", flexDirection: "column" }}>
       
-      {/* Top Navbar */}
-      <header style={{
-        backgroundColor: "#ffffff",
-        borderBottom: "1px solid #e2e8f0",
-        padding: "12px 20px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        flexWrap: "wrap",
-        gap: "10px"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "20px" }}>🌱</span>
-          <h1 style={{ margin: 0, fontSize: "1.15rem", fontWeight: "700", color: "#059669" }}>
+      {/* Top Navbar with Glassmorphism */}
+      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-slate-200/50 shadow-sm px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl drop-shadow-sm">🌱</span>
+          <h1 className="m-0 text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
             Green Route AI
           </h1>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ backgroundColor: "#ecfdf5", color: "#059669", padding: "6px 12px", borderRadius: "20px", fontSize: "13px", fontWeight: "700" }}>
+        <div className="flex items-center gap-3">
+          <motion.span 
+            key={ecoPoints}
+            initial={{ scale: 1.2, color: "#10b981" }}
+            animate={{ scale: 1, color: "#059669" }}
+            className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full text-sm font-bold shadow-inner border border-emerald-100"
+          >
             {ecoPoints} Pts
-          </span>
-          <button onClick={toggleDashboard} style={{ background: "#f59e0b", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+          </motion.span>
+          
+          <button onClick={toggleDashboard} className="bg-amber-500 hover:bg-amber-400 text-white border-none px-4 py-1.5 rounded-lg cursor-pointer text-sm font-semibold transition-colors shadow-sm">
             🏆 Rank
           </button>
-          <button onClick={() => setShowTutorial(true)} style={{ background: "#8b5cf6", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+          <button onClick={() => setShowTutorial(true)} className="bg-violet-500 hover:bg-violet-400 text-white border-none px-4 py-1.5 rounded-lg cursor-pointer text-sm font-semibold transition-colors shadow-sm">
             Guide
           </button>
-          <button onClick={() => setShowFeedback(true)} style={{ background: "#0284c7", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+          <button onClick={() => setShowFeedback(true)} className="bg-sky-500 hover:bg-sky-400 text-white border-none px-4 py-1.5 rounded-lg cursor-pointer text-sm font-semibold transition-colors shadow-sm">
             Contact
           </button>
-          <button onClick={handleLogout} style={{ background: "#ef4444", color: "white", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "13px", fontWeight: "600" }}>
+          <button onClick={handleLogout} className="bg-rose-500 hover:bg-rose-400 text-white border-none px-4 py-1.5 rounded-lg cursor-pointer text-sm font-semibold transition-colors shadow-sm">
             Logout
           </button>
         </div>

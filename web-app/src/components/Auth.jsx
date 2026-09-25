@@ -1,12 +1,11 @@
 "use client";
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Auth({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState('');
-  
-  // NEW: Loading state to prevent multiple clicks and show progress
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -16,12 +15,11 @@ export default function Auth({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true); // Disable button and update text
+    setLoading(true);
 
     const endpoint = isLogin ? '/api/users/login' : '/api/users/register';
 
     try {
-      // ✅ Updated to point to your new Vercel serverless API!
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,10 +30,10 @@ export default function Auth({ onLogin }) {
 
       if (data.success) {
         if (isLogin) {
-          onLogin(data.user); // Pass the logged-in user up to page.js
+          onLogin(data.user);
         } else {
-          setIsLogin(true); // Switch to login view
-          setError('Registration successful! Please login.'); // Show success message
+          setIsLogin(true);
+          setError('Registration successful! Please login.');
         }
       } else {
         setError(data.message || data.error);
@@ -43,71 +41,146 @@ export default function Auth({ onLogin }) {
     } catch {
       setError("Failed to connect to the server.");
     } finally {
-      setLoading(false); // Re-enable the button when done
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f0f2f5' }}>
-      <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', width: '350px' }}>
-        <h2 style={{ textAlign: 'center', color: '#2ECC71', marginBottom: '20px' }}>
-          Green Route AI
-        </h2>
+    <div className="relative min-h-screen flex items-center justify-center bg-slate-950 px-4 font-sans overflow-hidden selection:bg-emerald-500/30">
+      
+      {/* Immersive Background Glow Effects */}
+      <div className="absolute top-[-10%] left-[-20%] w-[300px] h-[300px] md:w-[40%] md:h-[50%] bg-emerald-600/20 rounded-full blur-[90px] md:blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-20%] w-[250px] h-[250px] md:w-[40%] md:h-[50%] bg-teal-600/20 rounded-full blur-[80px] md:blur-[100px] pointer-events-none" />
+
+      {/* Auth Card Container */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 80, damping: 20 }}
+        className="relative z-10 w-full max-w-md p-8 sm:p-10 rounded-[2rem] bg-slate-900/60 backdrop-blur-xl border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
+      >
+        
+        <div className="text-center mb-8">
+          <span className="inline-block p-3 bg-white/5 rounded-full border border-white/10 shadow-[0_0_20px_rgba(16,185,129,0.1)] text-3xl mb-4">
+            🌱
+          </span>
+          <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300 tracking-tight">
+            Green Route AI
+          </h2>
+        </div>
 
         {/* Back to Home Button */}
-        <div style={{ textAlign: "center", marginBottom: "15px" }}>
-          <button onClick={() => window.location.reload()} style={{ background: "transparent", border: "none", color: "#666", cursor: "pointer", fontSize: "14px" }}>
+        <div className="text-center mb-8">
+          <button 
+            onClick={() => window.location.reload()} 
+            className="text-slate-400 hover:text-white transition-colors text-sm font-medium flex items-center justify-center gap-2 mx-auto"
+          >
             ← Back to Home
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <input type="text" name="username" placeholder="Username" required value={formData.username} onChange={handleChange} style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <motion.div layout>
+            <input 
+              type="text" 
+              name="username" 
+              placeholder="Username" 
+              required 
+              value={formData.username} 
+              onChange={handleChange} 
+              className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner"
+            />
+          </motion.div>
 
-          {!isLogin && (
-            <input type="email" name="email" placeholder="Email" required value={formData.email} onChange={handleChange} style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
-          )}
+          <AnimatePresence>
+            {!isLogin && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <input 
+                  type="email" 
+                  name="email" 
+                  placeholder="Email" 
+                  required 
+                  value={formData.email} 
+                  onChange={handleChange} 
+                  className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <input type="password" name="password" placeholder="Password" required value={formData.password} onChange={handleChange} style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }} />
+          <motion.div layout>
+            <input 
+              type="password" 
+              name="password" 
+              placeholder="Password" 
+              required 
+              value={formData.password} 
+              onChange={handleChange} 
+              className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner"
+            />
+          </motion.div>
 
-          {error && (
-            <p style={{ 
-              fontSize: '14px', 
-              margin: 0, 
-              color: error.includes('successful') ? '#155724' : 'red',
-              backgroundColor: error.includes('successful') ? '#d4edda' : 'transparent',
-              padding: error.includes('successful') ? '10px' : '0',
-              borderRadius: '5px',
-              textAlign: 'center'
-            }}>
-              {error}
-            </p>
-          )}
+          {/* Animated Error/Success Message */}
+          <AnimatePresence>
+            {error && (
+              <motion.p 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className={`text-sm m-0 p-3 rounded-xl text-center border ${
+                  error.includes('successful') 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                }`}
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
-          <button 
+          <motion.button 
+            layout
             type="submit" 
-            disabled={loading} // Prevents double-clicking
-            style={{ 
-              backgroundColor: loading ? '#95a5a6' : '#2ECC71', 
-              color: 'white', 
-              padding: '10px', 
-              border: 'none', 
-              borderRadius: '5px', 
-              fontWeight: 'bold', 
-              cursor: loading ? 'not-allowed' : 'pointer' 
-            }}
+            disabled={loading}
+            whileHover={!loading ? { scale: 1.02 } : {}}
+            whileTap={!loading ? { scale: 0.98 } : {}}
+            className={`group relative w-full py-4 rounded-xl font-bold text-white overflow-hidden transition-all mt-2 ${
+              loading 
+                ? 'bg-slate-700 text-slate-300 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] cursor-pointer'
+            }`}
           >
-            {loading ? 'Connecting...' : (isLogin ? 'Login' : 'Create Account')}
-          </button>
+            {!loading && (
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+            )}
+            <span className="relative z-10">
+              {loading ? 'Connecting...' : (isLogin ? 'Login' : 'Create Account')}
+            </span>
+          </motion.button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '15px', fontSize: '14px' }}>
+        <motion.p layout className="text-center mt-6 text-sm text-slate-400">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <span onClick={() => { setIsLogin(!isLogin); setError(''); }} style={{ color: '#3498DB', cursor: 'pointer', fontWeight: 'bold' }}>
+          <span 
+            onClick={() => { setIsLogin(!isLogin); setError(''); }} 
+            className="text-emerald-400 cursor-pointer font-bold hover:text-emerald-300 transition-colors"
+          >
             {isLogin ? 'Register' : 'Login'}
           </span>
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+      `}} />
     </div>
   );
 }

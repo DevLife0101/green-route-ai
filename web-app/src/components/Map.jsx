@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents, useMap, CircleMarker } from 'react-leaflet';
+import { motion } from 'framer-motion';
 import L from 'leaflet';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -51,6 +52,14 @@ function GPSLocator({ points, routes }) {
   const map = useMap();
   const [position, setPosition] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
+  const btnRef = useRef(null);
+
+  // FIX: Force Leaflet to ignore clicks on this button so it doesn't swallow the event
+  useEffect(() => {
+    if (btnRef.current) {
+      L.DomEvent.disableClickPropagation(btnRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const onLocationFound = (e) => {
@@ -94,26 +103,20 @@ function GPSLocator({ points, routes }) {
 
   return (
     <>
-      <button
-        onClick={toggleTracking}
-        style={{
-          position: "absolute",
-          bottom: "20px",
-          right: "20px",
-          zIndex: 1000,
-          backgroundColor: isTracking ? "#ef4444" : "#2563eb",
-          color: "white",
-          border: "none",
-          padding: "10px 18px",
-          borderRadius: "30px",
-          cursor: "pointer",
-          fontWeight: "600",
-          fontSize: "13px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.25)"
-        }}
-      >
-        {isTracking ? "🛑 Stop Tracking" : "📍 Start Drive Mode"}
-      </button>
+      <div ref={btnRef} className="absolute bottom-6 right-6 z-[1000]">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleTracking}
+          className={`px-5 py-3 rounded-full font-bold text-sm shadow-[0_10px_25px_rgba(0,0,0,0.4)] border border-white/20 backdrop-blur-md transition-colors ${
+            isTracking 
+              ? 'bg-rose-500/90 text-white hover:bg-rose-500' 
+              : 'bg-sky-500/90 text-white hover:bg-sky-500'
+          }`}
+        >
+          {isTracking ? "🛑 Stop Tracking" : "📍 Start Drive Mode"}
+        </motion.button>
+      </div>
 
       {position && (
         <CircleMarker center={position} radius={8} pathOptions={{ fillColor: '#2563eb', color: 'white', weight: 3, fillOpacity: 1 }}>
@@ -128,40 +131,21 @@ export default function Map({ points, setPoints, routes, setRoutes, isExpanded, 
   const position = [31.1048, 77.1734];
 
   return (
-    <div style={{
-      position: isExpanded ? "fixed" : "relative",
-      top: isExpanded ? 0 : "auto",
-      left: isExpanded ? 0 : "auto",
-      width: isExpanded ? "100vw" : "100%",
-      height: isExpanded ? "100vh" : "480px",
-      zIndex: isExpanded ? 9999 : 1,
-      borderRadius: isExpanded ? "0" : "12px",
-      overflow: "hidden",
-      border: isExpanded ? "none" : "1px solid #e2e8f0",
-      boxShadow: isExpanded ? "none" : "0 4px 12px rgba(0,0,0,0.06)",
-      transition: "height 0.2s ease, width 0.2s ease"
-    }}>
+    <div className={`transition-all duration-300 ease-in-out overflow-hidden relative ${
+      isExpanded 
+        ? 'fixed inset-0 z-[9999] rounded-none border-none w-screen h-screen' 
+        : 'w-full h-full min-h-[500px] z-[1] rounded-[2rem] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]'
+    }`}>
+      
       {/* Expand / Minimize Map Toggle Button */}
-      <button
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={() => setIsExpanded(!isExpanded)}
-        style={{
-          position: "absolute",
-          top: "14px",
-          right: "14px",
-          zIndex: 1000,
-          backgroundColor: "rgba(255, 255, 255, 0.95)",
-          color: "#0f172a",
-          border: "1px solid #cbd5e1",
-          borderRadius: "8px",
-          padding: "8px 12px",
-          fontSize: "13px",
-          fontWeight: "600",
-          cursor: "pointer",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.1)"
-        }}
+        className="absolute top-5 right-5 z-[1000] bg-slate-900/80 backdrop-blur-xl text-white border border-white/20 rounded-xl px-4 py-2.5 text-sm font-bold shadow-[0_10px_25px_rgba(0,0,0,0.5)] hover:bg-slate-800 transition-colors"
       >
         {isExpanded ? "🗗 Minimize View" : "⛶ Expand Map"}
-      </button>
+      </motion.button>
 
       <MapContainer center={position} zoom={13} style={{ height: "100%", width: "100%" }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} />

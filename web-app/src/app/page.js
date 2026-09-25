@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Auth from '../components/Auth';
 import Landing from '../components/Landing';
 import Feedback from '../components/Feedback';
@@ -116,154 +116,201 @@ export default function Home() {
     setIsDashboardOpen(false);
   };
 
+  // Shared button style for the header
+  const navBtnClass = "px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-bold text-white shadow-lg transition-all active:scale-95 border border-white/10 backdrop-blur-md";
+
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#f8fafc", color: "#0f172a", display: "flex", flexDirection: "column" }}>
+    <div className="relative min-h-screen bg-slate-950 font-sans text-slate-200 overflow-x-hidden selection:bg-emerald-500/30 flex flex-col">
       
-      {/* Top Navbar with Glassmorphism */}
-      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-slate-200/50 shadow-sm px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+      {/* Immersive Background Glows */}
+      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[50%] bg-teal-600/10 rounded-full blur-[100px] pointer-events-none z-0" />
+
+      {/* Top Navbar - Premium Glassmorphism */}
+      <header className="sticky top-0 z-[5000] bg-slate-900/60 backdrop-blur-2xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.3)] px-4 md:px-6 py-3 md:py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        
         <div className="flex items-center gap-2">
-          <span className="text-2xl drop-shadow-sm">🌱</span>
-          <h1 className="m-0 text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+          <span className="text-2xl md:text-3xl drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">🌱</span>
+          <h1 className="m-0 text-lg md:text-xl font-extrabold bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent tracking-tight">
             Green Route AI
           </h1>
         </div>
 
-        <div className="flex items-center gap-3">
-          <motion.span 
+        <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
+          <motion.div 
             key={ecoPoints}
-            initial={{ scale: 1.2, color: "#10b981" }}
-            animate={{ scale: 1, color: "#059669" }}
-            className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full text-sm font-bold shadow-inner border border-emerald-100"
+            initial={{ scale: 1.2, color: "#34d399" }}
+            animate={{ scale: 1, color: "#10b981" }}
+            className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-extrabold shadow-[0_0_15px_rgba(16,185,129,0.2)]"
           >
-            {ecoPoints} Pts
-          </motion.span>
+            <span>{ecoPoints}</span> <span className="opacity-80 font-semibold">Pts</span>
+          </motion.div>
           
-          <button onClick={toggleDashboard} className="bg-amber-500 hover:bg-amber-400 text-white border-none px-4 py-1.5 rounded-lg cursor-pointer text-sm font-semibold transition-colors shadow-sm">
+          <motion.button whileHover={{ scale: 1.05 }} onClick={toggleDashboard} className={`${navBtnClass} bg-amber-500/80 hover:bg-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]`}>
             🏆 Rank
-          </button>
-          <button onClick={() => setShowTutorial(true)} className="bg-violet-500 hover:bg-violet-400 text-white border-none px-4 py-1.5 rounded-lg cursor-pointer text-sm font-semibold transition-colors shadow-sm">
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05 }} onClick={() => setShowTutorial(true)} className={`${navBtnClass} bg-violet-500/80 hover:bg-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.3)]`}>
             Guide
-          </button>
-          <button onClick={() => setShowFeedback(true)} className="bg-sky-500 hover:bg-sky-400 text-white border-none px-4 py-1.5 rounded-lg cursor-pointer text-sm font-semibold transition-colors shadow-sm">
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05 }} onClick={() => setShowFeedback(true)} className={`${navBtnClass} bg-sky-500/80 hover:bg-sky-400 shadow-[0_0_15px_rgba(14,165,233,0.3)]`}>
             Contact
-          </button>
-          <button onClick={handleLogout} className="bg-rose-500 hover:bg-rose-400 text-white border-none px-4 py-1.5 rounded-lg cursor-pointer text-sm font-semibold transition-colors shadow-sm">
+          </motion.button>
+          <motion.button whileHover={{ scale: 1.05 }} onClick={handleLogout} className={`${navBtnClass} bg-rose-500/80 hover:bg-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)]`}>
             Logout
-          </button>
+          </motion.button>
         </div>
       </header>
 
       {/* Main Content Container */}
-      <main style={{ maxWidth: "1100px", width: "100%", margin: "0 auto", padding: "20px 16px", display: "flex", flexDirection: "column", gap: "16px", boxSizing: "border-box" }}>
+      <main className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8 flex flex-col gap-6 md:gap-8 flex-1">
         
-        {/* Planner Component Above Map */}
-        <SearchControls onCalculate={handleCalculateRoute} isCalculating={isCalculating} />
+        {/* Planner Component */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <SearchControls onCalculate={handleCalculateRoute} isCalculating={isCalculating} />
+        </motion.div>
 
-        {/* Route Stats Card (Shows when a route is computed) */}
-        {routes && (
-          <div style={{
-            backgroundColor: "#ffffff",
-            padding: "16px 20px",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "12px"
-          }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", fontSize: "14px" }}>
-              <div>🔵 <b>Standard:</b> {routes.stats.standard_distance_km} km</div>
-              <div style={{ color: "#059669" }}>🟢 <b>Eco Route:</b> {routes.stats.eco_distance_km} km</div>
-              <div style={{ color: "#0d9488", fontWeight: "700" }}>💨 CO₂ Saved: {routes.stats.co2_saved_grams}g</div>
-            </div>
-            <button
-              onClick={handleSaveRoute}
-              style={{
-                backgroundColor: "#10b981",
-                color: "#ffffff",
-                border: "none",
-                padding: "10px 18px",
-                borderRadius: "8px",
-                fontWeight: "600",
-                fontSize: "14px",
-                cursor: "pointer"
-              }}
+        {/* Route Stats Card (Appears when route is computed) */}
+        <AnimatePresence>
+          {routes && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0, scale: 0.95 }}
+              animate={{ opacity: 1, height: "auto", scale: 1 }}
+              exit={{ opacity: 0, height: 0, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 100, damping: 20 }}
+              className="bg-slate-900/60 backdrop-blur-xl border border-emerald-500/30 p-5 md:p-6 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-col md:flex-row justify-between items-center gap-6 overflow-hidden"
             >
-              Choose Eco Route & Earn
-            </button>
-          </div>
-        )}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-4 md:gap-8 w-full md:w-auto">
+                <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 flex-1">
+                  <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Standard Route</div>
+                  <div className="text-white text-lg font-semibold flex items-center gap-2">🔵 {routes.stats.standard_distance_km} km</div>
+                </div>
+                <div className="bg-emerald-950/30 p-4 rounded-2xl border border-emerald-500/20 flex-1 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                  <div className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">Green Route</div>
+                  <div className="text-emerald-300 text-lg font-semibold flex items-center gap-2">🟢 {routes.stats.eco_distance_km} km</div>
+                </div>
+                <div className="bg-teal-950/30 p-4 rounded-2xl border border-teal-500/20 flex-1 shadow-[0_0_20px_rgba(20,184,166,0.1)]">
+                  <div className="text-teal-400 text-xs font-bold uppercase tracking-wider mb-1">CO₂ Saved</div>
+                  <div className="text-teal-300 text-lg font-extrabold flex items-center gap-2">💨 {routes.stats.co2_saved_grams}g</div>
+                </div>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleSaveRoute}
+                className="group relative w-full md:w-auto whitespace-nowrap px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all"
+              >
+                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  Choose Eco Route & Earn <span>→</span>
+                </span>
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Medium-Sized / Expandable Map View */}
-        <Map
-          points={points}
-          setPoints={setPoints}
-          routes={routes}
-          setRoutes={setRoutes}
-          isExpanded={isMapExpanded}
-          setIsExpanded={setIsMapExpanded}
-        />
+        <motion.div 
+          layout
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
+          className={`relative rounded-[2rem] overflow-hidden border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ${isMapExpanded ? 'fixed inset-0 z-[9999] rounded-none border-none' : 'w-full h-[500px]'}`}
+        >
+          <Map
+            points={points}
+            setPoints={setPoints}
+            routes={routes}
+            setRoutes={setRoutes}
+            isExpanded={isMapExpanded}
+            setIsExpanded={setIsMapExpanded}
+          />
+        </motion.div>
       </main>
 
-      {/* Slide-out Dashboard Drawer */}
-      <div style={{
-        position: "fixed",
-        top: 0,
-        left: isDashboardOpen ? 0 : "-100%",
-        width: "100%",
-        maxWidth: "360px",
-        height: "100vh",
-        backgroundColor: "#ffffff",
-        zIndex: 10000,
-        boxShadow: "4px 0 20px rgba(0,0,0,0.15)",
-        transition: "left 0.3s ease",
-        display: "flex",
-        flexDirection: "column"
-      }}>
-        <div style={{ padding: "18px 20px", backgroundColor: "#10b981", color: "white", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Green Dashboard</h2>
-          <button onClick={toggleDashboard} style={{ background: "transparent", border: "none", color: "white", fontSize: "20px", cursor: "pointer" }}>✖</button>
-        </div>
+      {/* Slide-out Dashboard Drawer with Framer Motion */}
+      <AnimatePresence>
+        {isDashboardOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={toggleDashboard}
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[9998]"
+            />
+            
+            {/* Drawer */}
+            <motion.div 
+              initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed top-0 left-0 w-full max-w-[380px] h-full bg-slate-900/95 backdrop-blur-2xl border-r border-white/10 z-[10000] shadow-[30px_0_60px_rgba(0,0,0,0.6)] flex flex-col"
+            >
+              <div className="p-6 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-white/10 flex justify-between items-center backdrop-blur-md">
+                <h2 className="m-0 text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+                  Green Dashboard
+                </h2>
+                <button onClick={toggleDashboard} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors">
+                  ✖
+                </button>
+              </div>
 
-        <div style={{ display: "flex", borderBottom: "1px solid #e2e8f0" }}>
-          <button onClick={() => setActiveTab('leaderboard')} style={{ flex: 1, padding: "12px", border: "none", background: activeTab === 'leaderboard' ? "#f1f5f9" : "white", fontWeight: activeTab === 'leaderboard' ? "700" : "normal", cursor: "pointer" }}>
-            Leaderboard
-          </button>
-          <button onClick={() => setActiveTab('history')} style={{ flex: 1, padding: "12px", border: "none", background: activeTab === 'history' ? "#f1f5f9" : "white", fontWeight: activeTab === 'history' ? "700" : "normal", cursor: "pointer" }}>
-            My History
-          </button>
-        </div>
+              <div className="flex p-2 gap-2 border-b border-white/5 bg-slate-950/30">
+                <button 
+                  onClick={() => setActiveTab('leaderboard')} 
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'leaderboard' ? 'bg-white/10 text-white shadow-inner' : 'text-slate-400 hover:bg-white/5 hover:text-slate-300'}`}
+                >
+                  Leaderboard
+                </button>
+                <button 
+                  onClick={() => setActiveTab('history')} 
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'history' ? 'bg-white/10 text-white shadow-inner' : 'text-slate-400 hover:bg-white/5 hover:text-slate-300'}`}
+                >
+                  My History
+                </button>
+              </div>
 
-        <div style={{ padding: "16px", overflowY: "auto", flex: 1 }}>
-          {activeTab === 'leaderboard' ? (
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              {leaderboard.map((user, idx) => (
-                <li key={idx} style={{ padding: "10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", backgroundColor: user.username === currentUser.username ? "#ecfdf5" : "transparent" }}>
-                  <span><b>#{idx + 1}</b> {user.username} {user.username === currentUser.username && "(You)"}</span>
-                  <span style={{ color: "#059669", fontWeight: "700" }}>{user.ecoPoints} pts</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              {history.length === 0 ? <p style={{ color: "#64748b" }}>No routes saved yet.</p> : history.map((route, idx) => (
-                <li key={idx} style={{ padding: "10px", backgroundColor: "#f8fafc", marginBottom: "8px", borderRadius: "6px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                    <b>Route {history.length - idx}</b>
-                    <span style={{ color: "#059669", fontWeight: "700" }}>+{route.pointsEarned} pts</span>
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#64748b" }}>Distance: {route.distanceKm} km</div>
-                  <div style={{ fontSize: "12px", color: "#64748b" }}>Saved: {new Date(route.savedAt).toLocaleDateString()}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+              <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+                {activeTab === 'leaderboard' ? (
+                  <ul className="flex flex-col gap-3 m-0 p-0 list-none">
+                    {leaderboard.map((user, idx) => (
+                      <li key={idx} className={`p-4 rounded-2xl flex justify-between items-center border ${user.username === currentUser.username ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-slate-950/50 border-white/5'}`}>
+                        <span className="text-slate-200 font-medium">
+                          <b className={`mr-2 ${idx < 3 ? 'text-amber-400 text-lg' : 'text-slate-500'}`}>#{idx + 1}</b> 
+                          {user.username} {user.username === currentUser.username && <span className="text-emerald-400 text-xs ml-1">(You)</span>}
+                        </span>
+                        <span className="text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-lg text-sm">{user.ecoPoints} pts</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <ul className="flex flex-col gap-3 m-0 p-0 list-none">
+                    {history.length === 0 ? <p className="text-slate-500 text-center mt-10">No routes saved yet.</p> : history.map((route, idx) => (
+                      <li key={idx} className="p-4 bg-slate-950/50 border border-white/5 rounded-2xl flex flex-col gap-2 transition-colors hover:bg-slate-900">
+                        <div className="flex justify-between items-center">
+                          <b className="text-slate-200">Route {history.length - idx}</b>
+                          <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg text-xs">+{route.pointsEarned} pts</span>
+                        </div>
+                        <div className="text-sm text-slate-400 flex justify-between">
+                          <span>Distance: <span className="text-slate-300">{route.distanceKm} km</span></span>
+                          <span>{new Date(route.savedAt).toLocaleDateString()}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
+      {/* Modals */}
       {showFeedback && <Feedback currentUser={currentUser} onClose={() => setShowFeedback(false)} />}
       {showTutorial && <Tutorial onClose={() => setShowTutorial(false)} />}
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+      `}} />
     </div>
   );
 }

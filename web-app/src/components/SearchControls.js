@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function AutocompleteInput({ label, placeholder, onLocationSelect }) {
   const [query, setQuery] = useState("");
@@ -47,69 +48,58 @@ function AutocompleteInput({ label, placeholder, onLocationSelect }) {
     });
   };
 
+  // Modern input field styling with focus glow
+  const inputClass = "w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner";
+
   return (
-    <div style={{ position: "relative", flex: 1, minWidth: "220px" }}>
-      <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#475569", marginBottom: "4px" }}>
+    <div className="relative flex-1 min-w-[220px]">
+      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
         {label}
       </label>
-      <div style={{ position: "relative" }}>
+      <div className="relative">
         <input
           type="text"
           placeholder={placeholder}
           value={query}
           onChange={handleType}
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #cbd5e1",
-            fontSize: "14px",
-            boxSizing: "border-box",
-            outline: "none"
-          }}
+          className={inputClass}
         />
-        {isLoading && (
-          <span style={{ position: "absolute", right: "10px", top: "10px", fontSize: "12px" }}>⏳</span>
-        )}
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute right-3.5 top-[50%] -translate-y-[50%] z-10"
+            >
+              {/* Modern animate-spin spinner instead of emoji */}
+              <div className="w-5 h-5 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {isOpen && results.length > 0 && (
-        <ul style={{
-          position: "absolute",
-          top: "100%",
-          left: 0,
-          right: 0,
-          backgroundColor: "#ffffff",
-          border: "1px solid #cbd5e1",
-          borderRadius: "8px",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-          listStyle: "none",
-          margin: "4px 0 0 0",
-          padding: 0,
-          zIndex: 5000,
-          maxHeight: "180px",
-          overflowY: "auto"
-        }}>
-          {results.map((item, idx) => (
-            <li
-              key={idx}
-              onClick={() => handleSelect(item)}
-              style={{
-                padding: "8px 12px",
-                borderBottom: "1px solid #f1f5f9",
-                cursor: "pointer",
-                fontSize: "13px",
-                color: "#1e293b",
-                lineHeight: "1.4"
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
-            >
-              {item.display_name}
-            </li>
-          ))}
-        </ul>
-      )}
+      <AnimatePresence>
+        {isOpen && results.length > 0 && (
+          <motion.ul 
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-[105%] left-0 right-0 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] list-none m-0 p-2 z-[5000] max-h-[220px] overflow-y-auto selection:bg-emerald-500/30"
+          >
+            {results.map((item, idx) => (
+              <li
+                key={idx}
+                onClick={() => handleSelect(item)}
+                className="px-4 py-3 border-b border-white/5 cursor-pointer rounded-lg text-sm text-slate-200 leading-snug hover:bg-emerald-500/20 transition-colors"
+              >
+                {item.display_name}
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -133,17 +123,7 @@ export default function SearchControls({ onCalculate, isCalculating }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{
-      backgroundColor: "#ffffff",
-      padding: "18px 20px",
-      borderRadius: "12px",
-      border: "1px solid #e2e8f0",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-      display: "flex",
-      flexWrap: "wrap",
-      gap: "14px",
-      alignItems: "flex-end"
-    }}>
+    <form onSubmit={handleSubmit} className="bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-wrap gap-5 items-end selection:bg-emerald-500/30">
       <AutocompleteInput 
         label="Origin" 
         placeholder="Start location..." 
@@ -156,23 +136,15 @@ export default function SearchControls({ onCalculate, isCalculating }) {
         onLocationSelect={setEndCoords} 
       />
 
-      <div style={{ minWidth: "160px", flex: "0 1 180px" }}>
-        <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#475569", marginBottom: "4px" }}>
+      <div className="min-w-[180px] flex-[0_1_180px]">
+        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
           Vehicle Type
         </label>
+        {/* Modern select styling matching inputs */}
         <select
           value={engineType}
           onChange={(e) => setEngineType(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #cbd5e1",
-            fontSize: "14px",
-            backgroundColor: "#ffffff",
-            color: "#1e293b",
-            outline: "none"
-          }}
+          className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner appearance-none cursor-pointer"
         >
           <option value="GASOLINE">🚗 Petrol (Gasoline)</option>
           <option value="DIESEL">⛽ Diesel Car</option>
@@ -181,24 +153,32 @@ export default function SearchControls({ onCalculate, isCalculating }) {
         </select>
       </div>
 
-      <button
+      <motion.button
         type="submit"
         disabled={isCalculating}
-        style={{
-          padding: "11px 22px",
-          backgroundColor: isCalculating ? "#94a3b8" : "#10b981",
-          color: "#ffffff",
-          border: "none",
-          borderRadius: "8px",
-          fontWeight: "600",
-          fontSize: "14px",
-          cursor: isCalculating ? "not-allowed" : "pointer",
-          flex: "0 0 auto",
-          transition: "background-color 0.2s"
-        }}
+        whileHover={!isCalculating ? { scale: 1.05 } : {}}
+        whileTap={!isCalculating ? { scale: 0.95 } : {}}
+        className={`group relative px-8 py-4 rounded-xl font-bold text-white overflow-hidden transition-all flex-[0_0_auto] ${
+          isCalculating 
+            ? 'bg-slate-700 text-slate-300 cursor-not-allowed shadow-none' 
+            : 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] cursor-pointer'
+        }`}
       >
-        {isCalculating ? "Calculating..." : "Find Green Route"}
-      </button>
+        {/* Shimmer Effect */}
+        {!isCalculating && (
+          <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+        )}
+        <span className="relative z-10">
+          {isCalculating ? "Calculating..." : "Find Green Route →"}
+        </span>
+      </motion.button>
+
+      {/* Tailwind Custom Keyframes for Submit Button Shimmer */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+      `}} />
     </form>
   );
 }

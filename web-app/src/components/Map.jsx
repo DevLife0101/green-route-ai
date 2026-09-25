@@ -53,8 +53,9 @@ function GPSLocator({ points, routes }) {
   const [position, setPosition] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
   const btnRef = useRef(null);
+  const hasInitialCentered = useRef(false); // Prevents map from stealing focus if user pans away
 
-  // FIX: Force Leaflet to ignore clicks on this button so it doesn't swallow the event
+  // Disable click propagation on the button
   useEffect(() => {
     if (btnRef.current) {
       L.DomEvent.disableClickPropagation(btnRef.current);
@@ -63,20 +64,34 @@ function GPSLocator({ points, routes }) {
 
   useEffect(() => {
     const onLocationFound = (e) => {
-      setPosition(e.latlng);
+      setPosition(e.latlng); // Always update the blue dot position
+      
+      // Auto-center on first load (Google Maps behavior)
+      if (!hasInitialCentered.current) {
+        hasInitialCentered.current = true;
+        map.flyTo(e.latlng, 14, { animate: true, duration: 1.5 }); // Zoom 14 is a great city-level overview
+      }
+
+      // If user explicitly clicked "Start Drive Mode", track them aggressively
       if (isTracking) {
         map.flyTo(e.latlng, 18, { animate: true, duration: 0.5 });
       }
     };
 
     const onLocationError = () => {
-      alert("GPS connection failed. Please enable location permissions.");
-      setIsTracking(false);
-      map.stopLocate();
+      // Only alert if they explicitly asked for tracking, otherwise fail silently on mount
+      if (isTracking) {
+        alert("GPS access denied. Please enable location permissions in your browser.");
+        setIsTracking(false);
+        map.stopLocate();
+      }
     };
 
     map.on("locationfound", onLocationFound);
     map.on("locationerror", onLocationError);
+
+    // Ask browser for location silently as soon as component mounts
+    map.locate({ watch: isTracking, enableHighAccuracy: true });
 
     return () => {
       map.off("locationfound", onLocationFound);
@@ -88,6 +103,11 @@ function GPSLocator({ points, routes }) {
     if (isTracking) {
       setIsTracking(false);
       map.stopLocate();
+      
+      // Stop tracking, but keep a silent watch to keep the blue dot accurate
+      map.locate({ watch: false, enableHighAccuracy: true });
+
+      // If a route exists, zoom out to show the whole route when tracking stops
       if (routes && routes.standard_route && routes.standard_route.length > 0) {
         const allPoints = [...routes.standard_route, ...(routes.eco_route || [])];
         map.flyToBounds(L.latLngBounds(allPoints), { padding: [40, 40], duration: 1.2 });
@@ -95,8 +115,9 @@ function GPSLocator({ points, routes }) {
     } else {
       setIsTracking(true);
       map.locate({ watch: true, enableHighAccuracy: true, maximumAge: 0 });
-      if (points && points.length > 0) {
-        map.flyTo(points[0], 18, { animate: true, duration: 1.2 });
+      // Instantly jump to user if we already know where they are
+      if (position) {
+        map.flyTo(position, 18, { animate: true, duration: 1.2 });
       }
     }
   };
@@ -128,7 +149,8 @@ function GPSLocator({ points, routes }) {
 }
 
 export default function Map({ points, setPoints, routes, setRoutes, isExpanded, setIsExpanded }) {
-  const position = [31.1048, 77.1734];
+  // Default fallback center if GPS is blocked
+  const defaultPosition = [31.1048, 77.1734];
 
   return (
     <div className={`transition-all duration-300 ease-in-out overflow-hidden relative ${
@@ -147,7 +169,7 @@ export default function Map({ points, setPoints, routes, setRoutes, isExpanded, 
         {isExpanded ? "🗗 Minimize View" : "⛶ Expand Map"}
       </motion.button>
 
-      <MapContainer center={position} zoom={13} style={{ height: "100%", width: "100%" }}>
+      <MapContainer center={defaultPosition} zoom={13} style={{ height: "100%", width: "100%" }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" maxZoom={19} />
         <MapResizer isExpanded={isExpanded} />
         <MapClicker setPoints={setPoints} points={points} setRoutes={setRoutes} />

@@ -52,7 +52,8 @@ function AutocompleteInput({ label, placeholder, onLocationSelect }) {
   const inputClass = "w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner";
 
   return (
-    <div className="relative flex-1 min-w-[220px]">
+    // FIX 1: Added z-[9999] so this container stays above the map
+    <div className="relative flex-1 min-w-[220px] z-[9999]">
       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
         {label}
       </label>
@@ -86,7 +87,8 @@ function AutocompleteInput({ label, placeholder, onLocationSelect }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-[105%] left-0 right-0 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] list-none m-0 p-2 z-[5000] max-h-[220px] overflow-y-auto selection:bg-emerald-500/30"
+            // FIX 2: Upgraded z-[5000] to z-[99999] to ensure it floats over everything
+            className="absolute top-[105%] left-0 right-0 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] list-none m-0 p-2 z-[99999] max-h-[220px] overflow-y-auto selection:bg-emerald-500/30"
           >
             {results.map((item, idx) => (
               <li
@@ -123,7 +125,8 @@ export default function SearchControls({ onCalculate, isCalculating }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-wrap gap-5 items-end selection:bg-emerald-500/30">
+    // FIX 3: Added 'relative z-[50]' to establish a new stacking context for the whole form
+    <form onSubmit={handleSubmit} className="relative z-[50] bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-wrap gap-5 items-end selection:bg-emerald-500/30">
       <AutocompleteInput 
         label="Origin" 
         placeholder="Start location..." 
@@ -136,7 +139,8 @@ export default function SearchControls({ onCalculate, isCalculating }) {
         onLocationSelect={setEndCoords} 
       />
 
-      <div className="min-w-[180px] flex-[0_1_180px]">
+      {/* FIX 4: Added 'relative z-40' to keep the select dropdown below the autocomplete dropdowns */}
+      <div className="min-w-[180px] flex-[0_1_180px] relative z-40">
         <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
           Vehicle Type
         </label>

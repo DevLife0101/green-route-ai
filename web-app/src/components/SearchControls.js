@@ -144,8 +144,8 @@ export default function SearchControls({ onCalculate, isCalculating }) {
           console.warn("User denied location or fetch failed:", error);
           setIsLocating(false);
         },
-        // FIX: Lower accuracy requirement for faster locks, and extended timeout to 15 seconds
-        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+        // Restored high accuracy with safety timeouts for perfect balance
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
       );
     }
   }, []);
@@ -187,6 +187,7 @@ export default function SearchControls({ onCalculate, isCalculating }) {
         <select
           value={engineType}
           onChange={(e) => setEngineType(e.target.value)}
+          style={{ colorScheme: 'dark' }}
           className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner appearance-none cursor-pointer"
         >
           <option value="GASOLINE" className="bg-slate-900 text-white">🚗 Petrol (Gasoline)</option>

@@ -87,14 +87,21 @@ export default function Home() {
 
   const handleSaveRoute = () => {
     if (!routes) return;
+    
+    // Capture location names if they exist, otherwise fallback to "Map Location"
+    const originName = points[0]?.name || "Map Location";
+    const destName = points[1]?.name || "Map Location";
+
     fetch('/api/routes/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: currentUser.username,
-        startCoords: [points[0].lat, points[0].lng],
-        endCoords: [points[1].lat, points[1].lng],
-        distanceKm: routes.stats.eco_distance_km
+        startCoords: [points[0].lat, (points[0].lng || points[0].lon)],
+        endCoords: [points[1].lat, (points[1].lng || points[1].lon)],
+        distanceKm: routes.stats.eco_distance_km,
+        originName: originName,
+        destName: destName
       })
     })
       .then(res => res.json())
@@ -109,6 +116,29 @@ export default function Home() {
       });
   };
 
+  // NEW: Handle Deleting a Route
+  const handleDeleteRoute = async (routeId) => {
+    if (!confirm("Are you sure you want to remove this route?")) return;
+    
+    try {
+      const res = await fetch('/api/routes/delete', {
+        method: 'POST', // Using POST for broader compatibility, or use DELETE if your backend prefers
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser.username, routeId })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        setEcoPoints(data.totalPoints); // Update points if backend deducts them
+        fetchDashboardData(); // Refresh list
+      } else {
+        alert(data.message || "Failed to delete route.");
+      }
+    } catch (err) {
+      console.error("Error deleting route", err);
+    }
+  };
+
   const handleLogout = () => {
     setCurrentUser(null);
     setPoints([]);
@@ -116,19 +146,15 @@ export default function Home() {
     setIsDashboardOpen(false);
   };
 
-  // Shared button style for the header
   const navBtnClass = "px-3 py-1.5 md:px-4 md:py-2 rounded-xl text-xs md:text-sm font-bold text-white shadow-lg transition-all active:scale-95 border border-white/10 backdrop-blur-md";
 
   return (
     <div className="relative min-h-screen bg-slate-950 font-sans text-slate-200 overflow-x-hidden selection:bg-emerald-500/30 flex flex-col">
       
-      {/* Immersive Background Glows */}
       <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[50%] bg-teal-600/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
-      {/* Top Navbar - Premium Glassmorphism */}
       <header className="sticky top-0 z-[5000] bg-slate-900/60 backdrop-blur-2xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.3)] px-4 md:px-6 py-3 md:py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        
         <div className="flex items-center gap-2">
           <span className="text-2xl md:text-3xl drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">🌱</span>
           <h1 className="m-0 text-lg md:text-xl font-extrabold bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent tracking-tight">
@@ -161,15 +187,11 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content Container */}
       <main className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8 flex flex-col gap-6 md:gap-8 flex-1">
-        
-        {/* Planner Component */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <SearchControls onCalculate={handleCalculateRoute} isCalculating={isCalculating} />
         </motion.div>
 
-        {/* Route Stats Card (Appears when route is computed) */}
         <AnimatePresence>
           {routes && (
             <motion.div 
@@ -209,7 +231,6 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        {/* Medium-Sized / Expandable Map View */}
         <motion.div 
           layout
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}
@@ -226,18 +247,15 @@ export default function Home() {
         </motion.div>
       </main>
 
-      {/* Slide-out Dashboard Drawer with Framer Motion */}
       <AnimatePresence>
         {isDashboardOpen && (
           <>
-            {/* Backdrop */}
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={toggleDashboard}
               className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[9998]"
             />
             
-            {/* Drawer */}
             <motion.div 
               initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -283,13 +301,33 @@ export default function Home() {
                 ) : (
                   <ul className="flex flex-col gap-3 m-0 p-0 list-none">
                     {history.length === 0 ? <p className="text-slate-500 text-center mt-10">No routes saved yet.</p> : history.map((route, idx) => (
-                      <li key={idx} className="p-4 bg-slate-950/50 border border-white/5 rounded-2xl flex flex-col gap-2 transition-colors hover:bg-slate-900">
-                        <div className="flex justify-between items-center">
-                          <b className="text-slate-200">Route {history.length - idx}</b>
-                          <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg text-xs">+{route.pointsEarned} pts</span>
+                      // UPGRADED LIST ITEM: Shows Location Names & Delete Button on Hover
+                      <li key={idx} className="p-4 bg-slate-950/50 border border-white/5 rounded-2xl flex flex-col gap-3 transition-colors hover:bg-slate-900 group">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex flex-col overflow-hidden">
+                            <b className="text-slate-200 text-sm truncate" title={route.originName || `Route ${history.length - idx}`}>
+                              {route.originName || `Route ${history.length - idx}`}
+                            </b>
+                            <span className="text-slate-400 text-xs truncate" title={route.destName || "Destination"}>
+                              ➔ {route.destName || "Destination"}
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                            <span className="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg text-xs">
+                              +{route.pointsEarned} pts
+                            </span>
+                            <button 
+                              onClick={() => handleDeleteRoute(route.id || route._id)} // Uses DB id
+                              className="text-rose-400/70 hover:text-rose-400 text-xs font-bold transition-all sm:opacity-0 sm:group-hover:opacity-100"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
                         </div>
-                        <div className="text-sm text-slate-400 flex justify-between">
-                          <span>Distance: <span className="text-slate-300">{route.distanceKm} km</span></span>
+                        
+                        <div className="text-xs text-slate-500 flex justify-between border-t border-white/5 pt-2">
+                          <span>Dist: <span className="text-slate-300">{route.distanceKm} km</span></span>
                           <span>{new Date(route.savedAt).toLocaleDateString()}</span>
                         </div>
                       </li>
@@ -302,7 +340,6 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Modals */}
       {showFeedback && <Feedback currentUser={currentUser} onClose={() => setShowFeedback(false)} />}
       {showTutorial && <Tutorial onClose={() => setShowTutorial(false)} />}
 

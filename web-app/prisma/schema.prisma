@@ -27,6 +27,11 @@ model SavedRoute {
   endCoords    Float[]
   distanceKm   Float
   pointsEarned Int
+  
+  // NEW: Store the names of the locations
+  originName   String?
+  destName     String?
+
   savedAt      DateTime @default(now())
 
   // Creates the relationship linking this route to a specific User

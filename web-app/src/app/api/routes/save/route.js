@@ -5,7 +5,8 @@ import { prisma } from '../../../../lib/prisma';
 
 export async function POST(request) {
   try {
-    const { username, startCoords, endCoords, distanceKm } = await request.json();
+    // Extract the new originName and destName fields
+    const { username, startCoords, endCoords, distanceKm, originName, destName } = await request.json();
 
     // 1. Find user in PostgreSQL
     const user = await prisma.user.findUnique({
@@ -18,14 +19,16 @@ export async function POST(request) {
 
     const pointsEarned = Math.max(1, Math.floor(distanceKm * 10));
 
-    // 2. Save route to PostgreSQL
+    // 2. Save route to PostgreSQL with location names
     await prisma.savedRoute.create({
       data: {
         userId: user.id,
         startCoords,
         endCoords,
         distanceKm: parseFloat(distanceKm),
-        pointsEarned
+        pointsEarned,
+        originName: originName || "Map Location",
+        destName: destName || "Map Location"
       }
     });
 

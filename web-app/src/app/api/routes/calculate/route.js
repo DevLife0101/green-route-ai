@@ -75,54 +75,33 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: "No route found", details: data }, { status: 404 });
     }
 
-    // --- SMART ROUTE SELECTION LOGIC ---
-    let defaultRoute = data.routes.find(r => r.routeLabels?.includes('DEFAULT_ROUTE'));
-    let fuelEfficientRoute = data.routes.find(r => r.routeLabels?.includes('FUEL_EFFICIENT'));
+    // --- BULLETPROOF ROUTE SELECTION ---
+    // 1. Find the eco route (or default to the first one)
+    const ecoRoute = data.routes.find(r => r.routeLabels?.includes('FUEL_EFFICIENT')) || data.routes[0];
     
-    // Grab alternative routes that Google generated
-    let altRoutes = data.routes.filter(r => r.routeLabels?.includes('DEFAULT_ROUTE_ALTERNATE'));
+    // 2. Find ANY route that is NOT the eco route to use as the standard route
+    const standardRoute = data.routes.find(r => r !== ecoRoute) || ecoRoute;
 
-    let standardRoute;
-    let ecoRoute;
-
-    if (fuelEfficientRoute) {
-        ecoRoute = fuelEfficientRoute;
-        
-        // If Google's default route is ALREADY the most eco-friendly route...
-        if (defaultRoute && defaultRoute.routeLabels?.includes('FUEL_EFFICIENT')) {
-            // Use a slightly worse alternate route as the "Standard" one so we can show a visual map comparison!
-            if (altRoutes.length > 0) {
-                standardRoute = altRoutes[0];
-            } else {
-                // If altRoutes is empty, literally only 1 road exists between the points
-                standardRoute = defaultRoute; 
-            }
-        } else {
-            standardRoute = defaultRoute || altRoutes[0] || fuelEfficientRoute;
-        }
-    } else {
-        // Fallback if Google doesn't return FUEL_EFFICIENT
-        standardRoute = defaultRoute || data.routes[0];
-        ecoRoute = standardRoute;
-    }
-
+    let stdDistanceKm = (standardRoute.distanceMeters || 0) / 1000;
+    let ecoDistanceKm = (ecoRoute.distanceMeters || 0) / 1000;
     let co2Saved = 0;
 
     if (selectedEngine === "ELECTRIC") {
-      const distanceKm = (ecoRoute.distanceMeters || 0) / 1000;
-      co2Saved = Math.round(distanceKm * 150); 
+      co2Saved = Math.round(ecoDistanceKm * 150); 
     } else {
       let standardFuelLiters = (standardRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
       let ecoFuelLiters = (ecoRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
 
-      // Keep our simulation fallback so the user always earns Eco Points for smooth driving
-      if (standardFuelLiters === ecoFuelLiters && standardFuelLiters > 0) {
-        standardFuelLiters = ecoFuelLiters * 1.12; 
-      } 
-      else if (standardFuelLiters === 0 && ecoFuelLiters === 0) {
-        const distanceKm = (standardRoute.distanceMeters || 0) / 1000;
-        ecoFuelLiters = distanceKm * 0.08; 
-        standardFuelLiters = ecoFuelLiters * 1.12;
+      // If Google only returned ONE route, simulate a slightly worse Standard Route
+      if (standardRoute === ecoRoute) {
+        stdDistanceKm = ecoDistanceKm * 1.08; // Make standard distance look 8% longer in UI
+        
+        if (ecoFuelLiters > 0) {
+          standardFuelLiters = ecoFuelLiters * 1.12; 
+        } else {
+          ecoFuelLiters = ecoDistanceKm * 0.08;
+          standardFuelLiters = ecoFuelLiters * 1.12;
+        }
       }
 
       co2Saved = Math.max(0, Math.round((standardFuelLiters - ecoFuelLiters) * 2310));
@@ -131,8 +110,8 @@ export async function POST(req) {
     return NextResponse.json({
       success: true,
       stats: {
-        standard_distance_km: (standardRoute.distanceMeters / 1000).toFixed(2),
-        eco_distance_km: (ecoRoute.distanceMeters / 1000).toFixed(2),
+        standard_distance_km: stdDistanceKm.toFixed(2),
+        eco_distance_km: ecoDistanceKm.toFixed(2),
         co2_saved_grams: co2Saved
       },
       standard_route: decodePolyline(standardRoute.polyline?.encodedPolyline),

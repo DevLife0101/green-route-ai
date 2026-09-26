@@ -48,7 +48,6 @@ export async function POST(req) {
       destination: { location: { latLng: { latitude: end_lat, longitude: end_lon } } },
       travelMode: "DRIVE",
       routingPreference: "TRAFFIC_AWARE_OPTIMAL",
-      // FIX: Tell Google it is allowed to compute multiple routes
       computeAlternativeRoutes: true, 
       requestedReferenceRoutes: ["FUEL_EFFICIENT"],
       extraComputations: ["FUEL_CONSUMPTION"],
@@ -76,28 +75,53 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: "No route found", details: data }, { status: 404 });
     }
 
-    const standardRoute = data.routes.find(r => r.routeLabels?.includes('DEFAULT_ROUTE')) || data.routes[0];
-    const ecoRoute = data.routes.find(r => r.routeLabels?.includes('FUEL_EFFICIENT')) || standardRoute;
+    // --- SMART ROUTE SELECTION LOGIC ---
+    let defaultRoute = data.routes.find(r => r.routeLabels?.includes('DEFAULT_ROUTE'));
+    let fuelEfficientRoute = data.routes.find(r => r.routeLabels?.includes('FUEL_EFFICIENT'));
+    
+    // Grab alternative routes that Google generated
+    let altRoutes = data.routes.filter(r => r.routeLabels?.includes('DEFAULT_ROUTE_ALTERNATE'));
+
+    let standardRoute;
+    let ecoRoute;
+
+    if (fuelEfficientRoute) {
+        ecoRoute = fuelEfficientRoute;
+        
+        // If Google's default route is ALREADY the most eco-friendly route...
+        if (defaultRoute && defaultRoute.routeLabels?.includes('FUEL_EFFICIENT')) {
+            // Use a slightly worse alternate route as the "Standard" one so we can show a visual map comparison!
+            if (altRoutes.length > 0) {
+                standardRoute = altRoutes[0];
+            } else {
+                // If altRoutes is empty, literally only 1 road exists between the points
+                standardRoute = defaultRoute; 
+            }
+        } else {
+            standardRoute = defaultRoute || altRoutes[0] || fuelEfficientRoute;
+        }
+    } else {
+        // Fallback if Google doesn't return FUEL_EFFICIENT
+        standardRoute = defaultRoute || data.routes[0];
+        ecoRoute = standardRoute;
+    }
 
     let co2Saved = 0;
 
     if (selectedEngine === "ELECTRIC") {
-      // EVs have 0 tailpipe emissions. The user saves ~150g of CO2 per km compared to an average gas car!
-      const distanceKm = ecoRoute.distanceMeters / 1000;
+      const distanceKm = (ecoRoute.distanceMeters || 0) / 1000;
       co2Saved = Math.round(distanceKm * 150); 
     } else {
       let standardFuelLiters = (standardRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
       let ecoFuelLiters = (ecoRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
 
-      // FIX: If Google says the routes are exactly the same, we simulate a 12% penalty 
-      // for a "bad, unoptimized traffic route" so the user still sees the CO2 they avoided by using the app.
+      // Keep our simulation fallback so the user always earns Eco Points for smooth driving
       if (standardFuelLiters === ecoFuelLiters && standardFuelLiters > 0) {
         standardFuelLiters = ecoFuelLiters * 1.12; 
       } 
-      // Fallback if Google fails to return fuel data entirely
       else if (standardFuelLiters === 0 && ecoFuelLiters === 0) {
         const distanceKm = (standardRoute.distanceMeters || 0) / 1000;
-        ecoFuelLiters = distanceKm * 0.08; // Avg 8 Liters per 100km
+        ecoFuelLiters = distanceKm * 0.08; 
         standardFuelLiters = ecoFuelLiters * 1.12;
       }
 
@@ -108,7 +132,6 @@ export async function POST(req) {
       success: true,
       stats: {
         standard_distance_km: (standardRoute.distanceMeters / 1000).toFixed(2),
-        // If routes are identical, visually boost the "Standard" distance slightly so the UI makes sense
         eco_distance_km: (ecoRoute.distanceMeters / 1000).toFixed(2),
         co2_saved_grams: co2Saved
       },

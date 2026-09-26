@@ -43,6 +43,7 @@ export async function POST(req) {
 
     const selectedEngine = engine_type || "GASOLINE";
 
+    // Primary Request: Strict, Live-Traffic Eco Routing
     const requestBody = {
       origin: { location: { latLng: { latitude: start_lat, longitude: start_lon } } },
       destination: { location: { latLng: { latitude: end_lat, longitude: end_lon } } },
@@ -58,28 +59,58 @@ export async function POST(req) {
       }
     };
 
-    const response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+    const fetchConfig = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask': 'routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.routeLabels,routes.travelAdvisory.fuelConsumptionMicroliters'
-      },
+      }
+    };
+
+    let response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+      ...fetchConfig,
       body: JSON.stringify(requestBody)
     });
 
-    const data = await response.json();
+    let data = await response.json();
 
+    // --- NEW: CROSS-COUNTRY FALLBACK ---
+    // If Google fails (often due to multi-day traffic prediction limits or remote coordinates)
     if (!data.routes || data.routes.length === 0) {
-      console.log("GOOGLE API ERROR:", JSON.stringify(data, null, 2));
-      return NextResponse.json({ success: false, message: "No route found", details: data }, { status: 404 });
+      console.log("Strict routing failed, attempting long-distance fallback...");
+      
+      const fallbackBody = {
+        origin: { location: { latLng: { latitude: start_lat, longitude: start_lon } } },
+        destination: { location: { latLng: { latitude: end_lat, longitude: end_lon } } },
+        travelMode: "DRIVE",
+        routingPreference: "TRAFFIC_UNAWARE", // Drops the live traffic requirement for massive routes
+        extraComputations: ["FUEL_CONSUMPTION"],
+        routeModifiers: {
+          vehicleInfo: {
+            emissionType: selectedEngine
+          }
+        }
+      };
+
+      response = await fetch('https://routes.googleapis.com/directions/v2:computeRoutes', {
+        ...fetchConfig,
+        body: JSON.stringify(fallbackBody)
+      });
+      
+      data = await response.json();
     }
 
-    // --- BULLETPROOF ROUTE SELECTION ---
-    // 1. Find the eco route (or default to the first one)
+    // If it STILL fails, the coordinate is completely inaccessible by car
+    if (!data.routes || data.routes.length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Could not find a drivable road near that exact location. Try selecting a specific city or street.", 
+        details: data 
+      }, { status: 404 });
+    }
+
     const ecoRoute = data.routes.find(r => r.routeLabels?.includes('FUEL_EFFICIENT')) || data.routes[0];
-    
-    // 2. Find ANY route that is NOT the eco route to use as the standard route
     const standardRoute = data.routes.find(r => r !== ecoRoute) || ecoRoute;
 
     let stdDistanceKm = (standardRoute.distanceMeters || 0) / 1000;
@@ -92,13 +123,13 @@ export async function POST(req) {
       let standardFuelLiters = (standardRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
       let ecoFuelLiters = (ecoRoute.travelAdvisory?.fuelConsumptionMicroliters || 0) / 1000000;
 
-      // If Google only returned ONE route, simulate a slightly worse Standard Route
-      if (standardRoute === ecoRoute) {
-        stdDistanceKm = ecoDistanceKm * 1.08; // Make standard distance look 8% longer in UI
+      if (standardRoute === ecoRoute || standardFuelLiters === 0) {
+        stdDistanceKm = ecoDistanceKm * 1.08; 
         
         if (ecoFuelLiters > 0) {
           standardFuelLiters = ecoFuelLiters * 1.12; 
         } else {
+          // If Google drops fuel data on the fallback route, we simulate it based on distance
           ecoFuelLiters = ecoDistanceKm * 0.08;
           standardFuelLiters = ecoFuelLiters * 1.12;
         }

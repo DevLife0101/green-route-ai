@@ -9,7 +9,6 @@ function AutocompleteInput({ label, placeholder, onLocationSelect, zIndexLayer, 
   const [isLoading, setIsLoading] = useState(false);
   const debounceTimeout = useRef(null);
 
-  // Automatically populate the field if the parent component passes an autoFill object
   useEffect(() => {
     if (autoFill && autoFill.name) {
       setQuery(autoFill.name);
@@ -117,7 +116,6 @@ export default function SearchControls({ onCalculate, isCalculating }) {
   const [autoOrigin, setAutoOrigin] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
 
-  // Fetch the user's current GPS location on component mount
   useEffect(() => {
     if ("geolocation" in navigator) {
       setIsLocating(true);
@@ -125,19 +123,19 @@ export default function SearchControls({ onCalculate, isCalculating }) {
         async (position) => {
           const { latitude, longitude } = position.coords;
           try {
-            // Reverse geocode to get a readable street address
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
             const data = await res.json();
             
             if (data && data.display_name) {
-              setAutoOrigin({
-                lat: latitude,
-                lng: longitude,
-                name: data.display_name
-              });
+              setAutoOrigin({ lat: latitude, lng: longitude, name: data.display_name });
+            } else {
+              // Fallback if API returns empty data
+              setAutoOrigin({ lat: latitude, lng: longitude, name: "Current Location" });
             }
           } catch (error) {
             console.error("Failed to reverse geocode location:", error);
+            // Fallback if API is blocked or offline
+            setAutoOrigin({ lat: latitude, lng: longitude, name: "Current Location" });
           } finally {
             setIsLocating(false);
           }
@@ -146,7 +144,8 @@ export default function SearchControls({ onCalculate, isCalculating }) {
           console.warn("User denied location or fetch failed:", error);
           setIsLocating(false);
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        // FIX: Lower accuracy requirement for faster locks, and extended timeout to 15 seconds
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
       );
     }
   }, []);

@@ -51,7 +51,6 @@ function AutocompleteInput({ label, placeholder, onLocationSelect }) {
   const inputClass = "w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner";
 
   return (
-    // Increased z-index stacking layer to ensure dropdown never hides behind the map
     <div className="relative flex-1 min-w-[220px] z-[9999]">
       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
         {label}
@@ -85,14 +84,14 @@ function AutocompleteInput({ label, placeholder, onLocationSelect }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            // Elevated z-index to 99999 so it floats cleanly over the map container
-            className="absolute top-[105%] left-0 right-0 bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] list-none m-0 p-2 z-[99999] max-h-[220px] overflow-y-auto selection:bg-emerald-500/30"
+            // FIX: Added bg-slate-950 for solid mobile backgrounds, kept md:bg-slate-900/95 for desktop glass effect
+            className="absolute top-[105%] left-0 right-0 bg-slate-950 md:bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] list-none m-0 p-2 z-[99999] max-h-[220px] overflow-y-auto selection:bg-emerald-500/30"
           >
             {results.map((item, idx) => (
               <li
                 key={idx}
                 onClick={() => handleSelect(item)}
-                className="px-4 py-3 border-b border-white/5 cursor-pointer rounded-lg text-sm text-slate-200 leading-snug hover:bg-emerald-500/20 transition-colors"
+                className="px-4 py-3 border-b border-white/5 cursor-pointer rounded-lg text-sm text-slate-200 leading-snug hover:bg-emerald-500/20 active:bg-emerald-500/30 transition-colors"
               >
                 {item.display_name}
               </li>
@@ -123,7 +122,6 @@ export default function SearchControls({ onCalculate, isCalculating }) {
   };
 
   return (
-    // Added relative positioning and elevated z-index for the overall control panel box
     <form onSubmit={handleSubmit} className="relative z-[50] bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-wrap gap-5 items-end selection:bg-emerald-500/30">
       <AutocompleteInput 
         label="Origin" 

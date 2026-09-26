@@ -48,10 +48,11 @@ function AutocompleteInput({ label, placeholder, onLocationSelect }) {
     });
   };
 
+  // Modern input field styling with focus glow
   const inputClass = "w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner";
 
   return (
-    <div className="relative flex-1 min-w-[220px] z-[9999]">
+    <div className="relative flex-1 min-w-[220px]">
       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
         {label}
       </label>
@@ -71,6 +72,7 @@ function AutocompleteInput({ label, placeholder, onLocationSelect }) {
               exit={{ opacity: 0 }}
               className="absolute right-3.5 top-[50%] -translate-y-[50%] z-10"
             >
+              {/* Modern animate-spin spinner instead of emoji */}
               <div className="w-5 h-5 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
             </motion.div>
           )}
@@ -84,14 +86,13 @@ function AutocompleteInput({ label, placeholder, onLocationSelect }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            // FIX: Removed global backdrop-blur. Mobile is now 100% solid bg-slate-950. Desktop gets md:bg-slate-900/95 and md:backdrop-blur-2xl
-            className="absolute top-[105%] left-0 right-0 bg-slate-950 md:bg-slate-900/95 md:backdrop-blur-2xl border border-white/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] list-none m-0 p-2 z-[99999] max-h-[220px] overflow-y-auto selection:bg-emerald-500/30"
+            className="absolute top-[105%] left-0 right-0 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] list-none m-0 p-2 z-[5000] max-h-[220px] overflow-y-auto selection:bg-emerald-500/30"
           >
             {results.map((item, idx) => (
               <li
                 key={idx}
                 onClick={() => handleSelect(item)}
-                className="px-4 py-3 border-b border-white/5 cursor-pointer rounded-lg text-sm text-slate-200 leading-snug hover:bg-emerald-500/20 active:bg-emerald-500/30 transition-colors"
+                className="px-4 py-3 border-b border-white/5 cursor-pointer rounded-lg text-sm text-slate-200 leading-snug hover:bg-emerald-500/20 transition-colors"
               >
                 {item.display_name}
               </li>
@@ -122,7 +123,7 @@ export default function SearchControls({ onCalculate, isCalculating }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative z-[50] bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-wrap gap-5 items-end selection:bg-emerald-500/30">
+    <form onSubmit={handleSubmit} className="bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-wrap gap-5 items-end selection:bg-emerald-500/30">
       <AutocompleteInput 
         label="Origin" 
         placeholder="Start location..." 
@@ -135,19 +136,20 @@ export default function SearchControls({ onCalculate, isCalculating }) {
         onLocationSelect={setEndCoords} 
       />
 
-      <div className="min-w-[180px] flex-[0_1_180px] relative z-40">
+      <div className="min-w-[180px] flex-[0_1_180px]">
         <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
           Vehicle Type
         </label>
+        {/* Modern select styling matching inputs */}
         <select
           value={engineType}
           onChange={(e) => setEngineType(e.target.value)}
           className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner appearance-none cursor-pointer"
         >
-          <option value="GASOLINE" className="bg-slate-900 text-white">🚗 Petrol (Gasoline)</option>
-          <option value="DIESEL" className="bg-slate-900 text-white">⛽ Diesel Car</option>
-          <option value="ELECTRIC" className="bg-slate-900 text-white">⚡ Electric (EV)</option>
-          <option value="HYBRID" className="bg-slate-900 text-white">🍃 Hybrid Car</option>
+          <option value="GASOLINE">🚗 Petrol (Gasoline)</option>
+          <option value="DIESEL">⛽ Diesel Car</option>
+          <option value="ELECTRIC">⚡ Electric (EV)</option>
+          <option value="HYBRID">🍃 Hybrid Car</option>
         </select>
       </div>
 
@@ -162,6 +164,7 @@ export default function SearchControls({ onCalculate, isCalculating }) {
             : 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)] cursor-pointer'
         }`}
       >
+        {/* Shimmer Effect */}
         {!isCalculating && (
           <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
         )}
@@ -170,6 +173,7 @@ export default function SearchControls({ onCalculate, isCalculating }) {
         </span>
       </motion.button>
 
+      {/* Tailwind Custom Keyframes for Submit Button Shimmer */}
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes shimmer {
           100% { transform: translateX(100%); }

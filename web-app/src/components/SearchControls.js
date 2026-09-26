@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Added zIndexLayer prop to explicitly control stacking order
 function AutocompleteInput({ label, placeholder, onLocationSelect, zIndexLayer }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -51,6 +52,7 @@ function AutocompleteInput({ label, placeholder, onLocationSelect, zIndexLayer }
   const inputClass = "w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner";
 
   return (
+    // Applied the dynamic z-index here
     <div className={`relative flex-1 min-w-[220px] ${zIndexLayer}`}>
       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
         {label}
@@ -126,14 +128,14 @@ export default function SearchControls({ onCalculate, isCalculating }) {
         label="Origin" 
         placeholder="Start location..." 
         onLocationSelect={setStartCoords}
-        zIndexLayer="z-[90]" 
+        zIndexLayer="z-[90]" // Highest priority
       />
 
       <AutocompleteInput 
         label="Destination" 
         placeholder="Destination..." 
         onLocationSelect={setEndCoords} 
-        zIndexLayer="z-[80]" 
+        zIndexLayer="z-[80]" // Second highest
       />
 
       <div className="min-w-[180px] flex-[0_1_180px] relative z-[70]">
@@ -143,8 +145,6 @@ export default function SearchControls({ onCalculate, isCalculating }) {
         <select
           value={engineType}
           onChange={(e) => setEngineType(e.target.value)}
-          // Added style={{ colorScheme: 'dark' }} here to force the mobile OS into dark mode
-          style={{ colorScheme: 'dark' }}
           className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner appearance-none cursor-pointer"
         >
           <option value="GASOLINE" className="bg-slate-900 text-white">🚗 Petrol (Gasoline)</option>

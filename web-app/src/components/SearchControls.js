@@ -84,8 +84,8 @@ function AutocompleteInput({ label, placeholder, onLocationSelect }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            // FIX: Added bg-slate-950 for solid mobile backgrounds, kept md:bg-slate-900/95 for desktop glass effect
-            className="absolute top-[105%] left-0 right-0 bg-slate-950 md:bg-slate-900/95 backdrop-blur-2xl border border-white/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] list-none m-0 p-2 z-[99999] max-h-[220px] overflow-y-auto selection:bg-emerald-500/30"
+            // FIX: Removed global backdrop-blur. Mobile is now 100% solid bg-slate-950. Desktop gets md:bg-slate-900/95 and md:backdrop-blur-2xl
+            className="absolute top-[105%] left-0 right-0 bg-slate-950 md:bg-slate-900/95 md:backdrop-blur-2xl border border-white/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] list-none m-0 p-2 z-[99999] max-h-[220px] overflow-y-auto selection:bg-emerald-500/30"
           >
             {results.map((item, idx) => (
               <li

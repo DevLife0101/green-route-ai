@@ -35,7 +35,7 @@ for u, v, k, data in G.edges(keys=True, data=True):
     base_cost = length * base_penalty
     
     # Apply mountain physics
-    grade = data.get('grade', 0.0) # Slope percentage (e.g., 0.08 for an 8% incline)
+    grade = data.get('grade', 0.0) 
     
     if grade > 0.03:
         # Steep Uphill: Massive fuel penalty (up to 3x cost)
@@ -56,6 +56,7 @@ class RouteRequest(BaseModel):
     start_lon: float
     end_lat: float
     end_lon: float
+    engine_type: str = "GASOLINE" # Captures the frontend dropdown selection
 
 @app.post("/calculate-route")
 def calculate_routes(req: RouteRequest):
@@ -66,20 +67,30 @@ def calculate_routes(req: RouteRequest):
         # 1. Calculate Standard Route (Shortest distance)
         standard_nodes = nx.shortest_path(G, start_node, end_node, weight='length')
         standard_path = [[G.nodes[n]['y'], G.nodes[n]['x']] for n in standard_nodes]
-        
-        # Bulletproof distance calculation: iterate through the nodes and sum the edge lengths
         standard_dist = sum(G[u][v][0].get('length', 0) for u, v in zip(standard_nodes[:-1], standard_nodes[1:]))
 
         # 2. Calculate Green Route (Lowest fuel/emission cost)
         eco_nodes = nx.shortest_path(G, start_node, end_node, weight='eco_cost')
         eco_path = [[G.nodes[n]['y'], G.nodes[n]['x']] for n in eco_nodes]
-        
-        # Bulletproof distance calculation for eco route
         eco_dist = sum(G[u][v][0].get('length', 0) for u, v in zip(eco_nodes[:-1], eco_nodes[1:]))
 
-        # Standard car: ~150g CO2 per km; Eco route averages ~15-20% reduction
-        std_co2 = round((standard_dist / 1000.0) * 150, 1)
-        eco_co2 = round((eco_dist / 1000.0) * 125, 1)
+        # 3. Calculate Engine Effort (The missing link)
+        # Sum the exact 3D work required for both paths
+        std_effort = sum(G[u][v][0].get('eco_cost', G[u][v][0].get('length', 0)) for u, v in zip(standard_nodes[:-1], standard_nodes[1:]))
+        eco_effort = sum(G[u][v][0].get('eco_cost', G[u][v][0].get('length', 0)) for u, v in zip(eco_nodes[:-1], eco_nodes[1:]))
+
+        # 4. Apply Dynamic Vehicle Type Emissions
+        # Grams of CO2 per unit of engine effort
+        emission_factors = {
+            "GASOLINE": 0.15,
+            "DIESEL": 0.14,
+            "HYBRID": 0.09,
+            "ELECTRIC": 0.03 # Accounts for power grid emissions
+        }
+        multiplier = emission_factors.get(req.engine_type.upper(), 0.15)
+
+        std_co2 = round(std_effort * multiplier, 1)
+        eco_co2 = round(eco_effort * multiplier, 1)
 
         return {
             "success": True,
@@ -90,7 +101,7 @@ def calculate_routes(req: RouteRequest):
                 "eco_distance_km": round(eco_dist / 1000.0, 2),
                 "standard_co2_grams": std_co2,
                 "eco_co2_grams": eco_co2,
-                "co2_saved_grams": max(0, round(std_co2 - eco_co2, 1))
+                "co2_saved_grams": max(0.0, round(std_co2 - eco_co2, 1))
             }
         }
     except Exception as e:

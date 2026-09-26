@@ -1,14 +1,21 @@
 "use client";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Added zIndexLayer prop to explicitly control stacking order
-function AutocompleteInput({ label, placeholder, onLocationSelect, zIndexLayer }) {
+function AutocompleteInput({ label, placeholder, onLocationSelect, zIndexLayer, autoFill }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const debounceTimeout = useRef(null);
+
+  // Automatically populate the field if the parent component passes an autoFill object
+  useEffect(() => {
+    if (autoFill && autoFill.name) {
+      setQuery(autoFill.name);
+      onLocationSelect(autoFill);
+    }
+  }, [autoFill]);
 
   const searchLocation = (text) => {
     if (!text) {
@@ -52,7 +59,6 @@ function AutocompleteInput({ label, placeholder, onLocationSelect, zIndexLayer }
   const inputClass = "w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-inner";
 
   return (
-    // Applied the dynamic z-index here
     <div className={`relative flex-1 min-w-[220px] ${zIndexLayer}`}>
       <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
         {label}
@@ -108,6 +114,42 @@ export default function SearchControls({ onCalculate, isCalculating }) {
   const [startCoords, setStartCoords] = useState(null);
   const [endCoords, setEndCoords] = useState(null);
   const [engineType, setEngineType] = useState("GASOLINE");
+  const [autoOrigin, setAutoOrigin] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
+
+  // Fetch the user's current GPS location on component mount
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            // Reverse geocode to get a readable street address
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            const data = await res.json();
+            
+            if (data && data.display_name) {
+              setAutoOrigin({
+                lat: latitude,
+                lng: longitude,
+                name: data.display_name
+              });
+            }
+          } catch (error) {
+            console.error("Failed to reverse geocode location:", error);
+          } finally {
+            setIsLocating(false);
+          }
+        },
+        (error) => {
+          console.warn("User denied location or fetch failed:", error);
+          setIsLocating(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -126,16 +168,17 @@ export default function SearchControls({ onCalculate, isCalculating }) {
     <form onSubmit={handleSubmit} className="relative z-[50] bg-slate-900/60 backdrop-blur-xl border border-white/10 p-5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-wrap gap-5 items-end selection:bg-emerald-500/30">
       <AutocompleteInput 
         label="Origin" 
-        placeholder="Start location..." 
+        placeholder={isLocating ? "Detecting location..." : "Start location..."} 
         onLocationSelect={setStartCoords}
-        zIndexLayer="z-[90]" // Highest priority
+        zIndexLayer="z-[90]"
+        autoFill={autoOrigin} 
       />
 
       <AutocompleteInput 
         label="Destination" 
         placeholder="Destination..." 
         onLocationSelect={setEndCoords} 
-        zIndexLayer="z-[80]" // Second highest
+        zIndexLayer="z-[80]"
       />
 
       <div className="min-w-[180px] flex-[0_1_180px] relative z-[70]">

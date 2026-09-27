@@ -65,7 +65,7 @@ export default function Home() {
       if (data.success) {
         setRoutes(data);
         
-        // --- NEW: Trigger AI Copilot in the background ---
+        // --- Trigger AI Copilot in the background with Weather Coordinates ---
         setIsAiLoading(true);
         fetch('/api/ai-advisor', {
           method: 'POST',
@@ -75,7 +75,9 @@ export default function Home() {
             destination: end.name || "Destination",
             engineType: engineType,
             co2Saved: data.stats.co2_saved_grams,
-            distance: data.stats.eco_distance_km
+            distance: data.stats.eco_distance_km,
+            end_lat: end.lat,
+            end_lon: end.lng
           })
         })
         .then(res => res.json())
@@ -269,7 +271,7 @@ export default function Home() {
                 {isAiLoading ? (
                   <div className="flex items-center gap-3 text-indigo-300 text-sm animate-pulse">
                     <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                    Analyzing terrain and vehicle efficiency...
+                    Analyzing terrain, weather, and vehicle efficiency...
                   </div>
                 ) : (
                   <p className="text-slate-200 text-sm leading-relaxed italic">

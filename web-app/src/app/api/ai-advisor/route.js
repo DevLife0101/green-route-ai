@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// Helper function to handle the actual API request
+// Helper function to handle the Gemini API request
 async function fetchFromGemini(modelName, apiKey, prompt) {
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
     method: 'POST',
@@ -25,47 +25,63 @@ async function fetchFromGemini(modelName, apiKey, prompt) {
 
 export async function POST(req) {
   try {
-    const { origin, destination, engineType, co2Saved, distance } = await req.json();
+    const { origin, destination, engineType, co2Saved, distance, end_lat, end_lon } = await req.json();
     const apiKey = process.env.GEMINI_API_KEY; 
     
     if (!apiKey) {
-      console.log("❌ ERROR: GEMINI_API_KEY is missing from environment variables!");
       return NextResponse.json({ success: false, message: "AI API Key missing." }, { status: 500 });
     }
 
+    // --- NEW: FETCH LIVE WEATHER FROM OPEN-METEO ---
+    let weatherContext = "Clear conditions.";
+    try {
+      if (end_lat && end_lon) {
+        // Fetch temperature, wind speed, and precipitation. No API key needed!
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${end_lat}&longitude=${end_lon}&current=temperature_2m,wind_speed_10m,precipitation`);
+        const weatherData = await weatherRes.json();
+        
+        if (weatherData && weatherData.current) {
+          const temp = weatherData.current.temperature_2m;
+          const wind = weatherData.current.wind_speed_10m;
+          const rain = weatherData.current.precipitation;
+          
+          weatherContext = `${temp}°C, Wind Speed: ${wind} km/h, Precipitation: ${rain}mm.`;
+          console.log(`Live Weather at ${destination}:`, weatherContext);
+        }
+      }
+    } catch (weatherError) {
+      console.warn("⚠️ Could not fetch live weather, falling back to default.", weatherError.message);
+    }
+
+    // --- UPDATED AI PROMPT WITH WEATHER INJECTION ---
     const prompt = `
-      You are the 'Green Route AI Copilot', an expert in eco-friendly driving. 
-      The user is driving a ${engineType} vehicle from ${origin} to ${destination}. 
-      The trip is ${distance} km long, and they are saving ${co2Saved} grams of CO2 by taking the eco-route.
+      You are the 'Green Route AI Copilot', an expert in eco-friendly driving and physics. 
+      The user is driving a ${engineType} vehicle from ${origin} to ${destination} (${distance} km).
+      They are saving ${co2Saved} grams of CO2 by taking the eco-route.
       
-      Provide a highly specific, 2-sentence driving tip based on their vehicle type and the likely geography of this route. 
-      Also, creatively contextualize their CO2 savings (e.g., "That's enough energy to..."). 
-      Keep the tone encouraging, modern, and concise. Do not use hashtags.
+      LIVE WEATHER DATA AT DESTINATION: ${weatherContext}
+
+      Provide a highly specific, 2-sentence driving tip. 
+      CRITICAL INSTRUCTION: You MUST factor the live weather into your advice. 
+      (e.g., If it's cold, mention EV battery drain. If wind speed is high, mention aerodynamic drag and keeping speeds lower. If raining, mention smooth braking).
+      Also briefly contextualize their CO2 savings. Keep the tone encouraging, modern, and concise. No hashtags.
     `;
 
     let aiInsight;
 
     try {
-      // 1. PRIMARY ATTEMPT: Try the newest model (3.8-flash)
-      console.log("Attempting Gemini 3.8 Flash...");
+      // 1. PRIMARY ATTEMPT: Try the newest model
       aiInsight = await fetchFromGemini('gemini-3.8-flash', apiKey, prompt);
-      
     } catch (error38) {
-      console.warn("⚠️ Gemini 3.8 failed (likely high demand). Falling back to 3.5:", error38.message);
-      
+      console.warn("⚠️ Gemini 3.8 failed. Falling back to 3.5:", error38.message);
       try {
-        // 2. FALLBACK ATTEMPT: Try the highly stable production model (3.5-flash)
-        console.log("Attempting Gemini 3.5 Flash (Fallback)...");
+        // 2. FALLBACK ATTEMPT: Try the stable model
         aiInsight = await fetchFromGemini('gemini-3.5-flash', apiKey, prompt);
-        
       } catch (error35) {
-        // 3. COMPLETE FAILURE: Both Google models are down
-        console.error("❌ Both Gemini models failed:", error35.message);
         return NextResponse.json({ success: false, error: "AI temporarily unavailable." }, { status: 500 });
       }
     }
 
-    // If either attempt succeeded, return the text to the frontend
     return NextResponse.json({ success: true, insight: aiInsight });
 
   } catch (error) {

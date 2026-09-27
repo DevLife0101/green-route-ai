@@ -27,6 +27,10 @@ export default function Home() {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isMapExpanded, setIsMapExpanded] = useState(false);
 
+  // NEW: AI Copilot States
+  const [aiInsight, setAiInsight] = useState(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
   if (!currentUser && !showAuth) {
     return <Landing onGetStarted={() => setShowAuth(true)} />;
   }
@@ -42,6 +46,7 @@ export default function Home() {
     setIsCalculating(true);
     setPoints([start, end]);
     setRoutes(null);
+    setAiInsight(null); // Reset previous insight
 
     try {
       const res = await fetch('/api/routes/calculate', {
@@ -59,6 +64,30 @@ export default function Home() {
       const data = await res.json();
       if (data.success) {
         setRoutes(data);
+        
+        // --- NEW: Trigger AI Copilot in the background ---
+        setIsAiLoading(true);
+        fetch('/api/ai-advisor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            origin: start.name || "Start Location",
+            destination: end.name || "Destination",
+            engineType: engineType,
+            co2Saved: data.stats.co2_saved_grams,
+            distance: data.stats.eco_distance_km
+          })
+        })
+        .then(res => res.json())
+        .then(aiData => {
+          if (aiData.success) setAiInsight(aiData.insight);
+          setIsAiLoading(false);
+        })
+        .catch((err) => {
+          console.error("AI Fetch Error:", err);
+          setIsAiLoading(false);
+        });
+
       } else {
         alert(data.message || "Failed to find a route.");
       }
@@ -88,7 +117,6 @@ export default function Home() {
   const handleSaveRoute = () => {
     if (!routes) return;
     
-    // Capture location names if they exist, otherwise fallback to "Map Location"
     const originName = points[0]?.name || "Map Location";
     const destName = points[1]?.name || "Map Location";
 
@@ -111,26 +139,26 @@ export default function Home() {
           setEcoPoints(data.totalPoints);
           setRoutes(null);
           setPoints([]);
+          setAiInsight(null);
           fetchDashboardData();
         }
       });
   };
 
-  // NEW: Handle Deleting a Route
   const handleDeleteRoute = async (routeId) => {
     if (!confirm("Are you sure you want to remove this route?")) return;
     
     try {
       const res = await fetch('/api/routes/delete', {
-        method: 'POST', // Using POST for broader compatibility, or use DELETE if your backend prefers
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: currentUser.username, routeId })
       });
       
       const data = await res.json();
       if (data.success) {
-        setEcoPoints(data.totalPoints); // Update points if backend deducts them
-        fetchDashboardData(); // Refresh list
+        setEcoPoints(data.totalPoints);
+        fetchDashboardData();
       } else {
         alert(data.message || "Failed to delete route.");
       }
@@ -143,6 +171,7 @@ export default function Home() {
     setCurrentUser(null);
     setPoints([]);
     setRoutes(null);
+    setAiInsight(null);
     setIsDashboardOpen(false);
   };
 
@@ -199,34 +228,55 @@ export default function Home() {
               animate={{ opacity: 1, height: "auto", scale: 1 }}
               exit={{ opacity: 0, height: 0, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 100, damping: 20 }}
-              className="bg-slate-900/60 backdrop-blur-xl border border-emerald-500/30 p-5 md:p-6 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-col md:flex-row justify-between items-center gap-6 overflow-hidden"
+              className="bg-slate-900/60 backdrop-blur-xl border border-emerald-500/30 p-5 md:p-6 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.4)] flex flex-col gap-6 overflow-hidden"
             >
-              <div className="flex flex-col sm:flex-row flex-wrap gap-4 md:gap-8 w-full md:w-auto">
-                <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 flex-1">
-                  <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Standard Route</div>
-                  <div className="text-white text-lg font-semibold flex items-center gap-2">🔵 {routes.stats.standard_distance_km} km</div>
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-4 md:gap-8 w-full md:w-auto">
+                  <div className="bg-slate-950/50 p-4 rounded-2xl border border-white/5 flex-1">
+                    <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Standard Route</div>
+                    <div className="text-white text-lg font-semibold flex items-center gap-2">🔵 {routes.stats.standard_distance_km} km</div>
+                  </div>
+                  <div className="bg-emerald-950/30 p-4 rounded-2xl border border-emerald-500/20 flex-1 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                    <div className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">Green Route</div>
+                    <div className="text-emerald-300 text-lg font-semibold flex items-center gap-2">🟢 {routes.stats.eco_distance_km} km</div>
+                  </div>
+                  <div className="bg-teal-950/30 p-4 rounded-2xl border border-teal-500/20 flex-1 shadow-[0_0_20px_rgba(20,184,166,0.1)]">
+                    <div className="text-teal-400 text-xs font-bold uppercase tracking-wider mb-1">CO₂ Saved</div>
+                    <div className="text-teal-300 text-lg font-extrabold flex items-center gap-2">💨 {routes.stats.co2_saved_grams}g</div>
+                  </div>
                 </div>
-                <div className="bg-emerald-950/30 p-4 rounded-2xl border border-emerald-500/20 flex-1 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
-                  <div className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">Green Route</div>
-                  <div className="text-emerald-300 text-lg font-semibold flex items-center gap-2">🟢 {routes.stats.eco_distance_km} km</div>
-                </div>
-                <div className="bg-teal-950/30 p-4 rounded-2xl border border-teal-500/20 flex-1 shadow-[0_0_20px_rgba(20,184,166,0.1)]">
-                  <div className="text-teal-400 text-xs font-bold uppercase tracking-wider mb-1">CO₂ Saved</div>
-                  <div className="text-teal-300 text-lg font-extrabold flex items-center gap-2">💨 {routes.stats.co2_saved_grams}g</div>
-                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleSaveRoute}
+                  className="group relative w-full md:w-auto whitespace-nowrap px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all"
+                >
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    Choose Eco Route & Earn <span>→</span>
+                  </span>
+                </motion.button>
               </div>
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleSaveRoute}
-                className="group relative w-full md:w-auto whitespace-nowrap px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all"
-              >
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  Choose Eco Route & Earn <span>→</span>
-                </span>
-              </motion.button>
+              {/* AI Copilot UI */}
+              <div className="w-full bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-5 relative overflow-hidden shadow-[0_0_20px_rgba(79,70,229,0.1)]">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">✨</span>
+                  <h3 className="text-indigo-400 font-bold text-sm uppercase tracking-wider">Gemini AI Copilot</h3>
+                </div>
+                
+                {isAiLoading ? (
+                  <div className="flex items-center gap-3 text-indigo-300 text-sm animate-pulse">
+                    <div className="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                    Analyzing terrain and vehicle efficiency...
+                  </div>
+                ) : (
+                  <p className="text-slate-200 text-sm leading-relaxed italic">
+                    "{aiInsight || "Drive smoothly and avoid rapid acceleration to maximize your fuel efficiency on this trip."}"
+                  </p>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -301,7 +351,6 @@ export default function Home() {
                 ) : (
                   <ul className="flex flex-col gap-3 m-0 p-0 list-none">
                     {history.length === 0 ? <p className="text-slate-500 text-center mt-10">No routes saved yet.</p> : history.map((route, idx) => (
-                      // UPGRADED LIST ITEM: Shows Location Names & Delete Button on Hover
                       <li key={idx} className="p-4 bg-slate-950/50 border border-white/5 rounded-2xl flex flex-col gap-3 transition-colors hover:bg-slate-900 group">
                         <div className="flex justify-between items-start gap-2">
                           <div className="flex flex-col overflow-hidden">
@@ -318,7 +367,7 @@ export default function Home() {
                               +{route.pointsEarned} pts
                             </span>
                             <button 
-                              onClick={() => handleDeleteRoute(route.id || route._id)} // Uses DB id
+                              onClick={() => handleDeleteRoute(route.id || route._id)}
                               className="text-rose-400/70 hover:text-rose-400 text-xs font-bold transition-all sm:opacity-0 sm:group-hover:opacity-100"
                             >
                               🗑️ Delete

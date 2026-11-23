@@ -265,7 +265,7 @@ export default function Home() {
               <div className="w-full bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-5 relative overflow-hidden shadow-[0_0_20px_rgba(79,70,229,0.1)]">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xl">✨</span>
-                  <h3 className="text-indigo-400 font-bold text-sm uppercase tracking-wider">Gemini AI Copilot</h3>
+                  <h3 className="text-indigo-400 font-bold text-sm uppercase tracking-wider">GreenRoute Intelligence</h3>
                 </div>
                 
                 {isAiLoading ? (
